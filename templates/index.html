@@ -1,44 +1,79 @@
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
-    <meta charset="UTF-8">
-    <title>論文救火站 - APA Citation Generator</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <meta charset="UTF-8">
+  <title>論文救火站 - APA Citation Generator</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-    <div class="container">
-        <h1>📚 論文救火站 - APA Citation 生成器</h1>
-        <p>輸入 DOI 或 APA Reference：</p>
-        <textarea id="inputText" placeholder="例如：10.1016/j.neuroimage.2010.03.001 或 Pontifex, M. B., Hillman, C. H., ..."></textarea>
-        <button onclick="generateCitation()">產生 Citation</button>
+  <div class="container">
+    <h1>📚 論文救火站</h1>
+    <p>輸入 DOI 或 APA Reference，系統將自動判斷格式：</p>
 
-        <div id="result"></div>
-    </div>
+    <!-- <input type="text" id="inputBox" placeholder="請輸入 DOI 或 Reference..."> -->
+    <textarea id="inputBox" placeholder="請輸入 DOI 或 Reference..."></textarea>
+    <ul id="suggestions"></ul>
 
-    <script>
-        async function generateCitation() {
-            const input = document.getElementById('inputText').value;
-            const resultDiv = document.getElementById('result');
-            resultDiv.innerHTML = '⏳ 正在處理中...';
+    <button id="generateBtn" onclick="generateCitation()">產生 Citation</button>
+    <div id="loading" style="display:none;">⏳ 正在處理中...</div>
+    <div id="result"></div>
+  </div>
 
-            const res = await fetch('/api/generate_citation', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ input })
-            });
-            const data = await res.json();
+  <script>
+    const inputBox = document.getElementById('inputBox');
+    const suggestions = document.getElementById('suggestions');
+    const loading = document.getElementById('loading');
 
-            if (data.status === 'success') {
-                resultDiv.innerHTML = `
-                    <h2>✅ 結果 (${data.mode.toUpperCase()})</h2>
-                    <p><strong>Reference:</strong><br>${data.reference}</p>
-                    <p><strong>Parenthetical:</strong> ${data.citations.parenthetical}</p>
-                    <p><strong>Narrative:</strong> ${data.citations.narrative}</p>
-                `;
-            } else {
-                resultDiv.innerHTML = `<p class="error">❌ ${data.message}</p>`;
-            }
+    // 🔍 偵測 DOI 開頭自動補全
+    inputBox.addEventListener('input', async (e) => {
+      const value = e.target.value.trim();
+      suggestions.innerHTML = '';
+      if (value.startsWith('10.')) {
+        const res = await fetch(`/api/suggest_doi?prefix=${encodeURIComponent(value)}`);
+        const data = await res.json();
+        if (data.length > 0) {
+          data.forEach(item => {
+            const li = document.createElement('li');
+            li.innerHTML = `<strong>${item.doi}</strong> (${item.year}) - ${item.title}`;
+            li.onclick = () => {
+              inputBox.value = item.doi;
+              suggestions.innerHTML = '';
+            };
+            suggestions.appendChild(li);
+          });
         }
-    </script>
+      }
+    });
+
+    // 🚀 產生 Citation
+    async function generateCitation() {
+      const input = inputBox.value.trim();
+      if (!input) return alert("請輸入 DOI 或 Reference！");
+
+      loading.style.display = 'block';
+      document.getElementById('result').innerHTML = '';
+
+      const res = await fetch('/api/generate_citation', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ input })
+      });
+
+      const data = await res.json();
+      loading.style.display = 'none';
+
+      if (data.status === 'success') {
+        document.getElementById('result').innerHTML = `
+          <h2>✅ 結果 (${data.mode.toUpperCase()})</h2>
+          <p><strong>Reference:</strong><br>${data.reference}</p>
+          <p><strong>Parenthetical:</strong> ${data.citations.parenthetical}</p>
+          <p><strong>Narrative:</strong> ${data.citations.narrative}</p>
+          <p><small><i>${data.meta.journal} | ${data.meta.publisher}</i></small></p>
+        `;
+      } else {
+        document.getElementById('result').innerHTML = `<p class="error">${data.message}</p>`;
+      }
+    }
+  </script>
 </body>
 </html>
