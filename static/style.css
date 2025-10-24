@@ -70,3 +70,37 @@ ul#suggestions li:hover {
   color: #555;
   margin-top: 15px;
 }
+
+.copyable {
+  background-color: transparent;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  border-radius: 6px;
+  padding: 2px 4px;
+}
+
+.copyable:hover {
+  background-color: #f1f3f4;
+}
+
+/* ✅ Pop-out 提示 */
+.copy-popup {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  background: #333;
+  color: #fff;
+  padding: 8px 14px;
+  border-radius: 8px;
+  opacity: 0;
+  transform: translateY(-10px);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  font-size: 14px;
+  z-index: 9999;
+}
+
+.copy-popup.show {
+  opacity: 1;
+  transform: translateY(0);
+}
+

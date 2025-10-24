@@ -4,14 +4,78 @@
   <meta charset="UTF-8">
   <title>論文救火站 - APA Citation Generator</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <style>
+    body {
+      font-family: "Noto Sans TC", sans-serif;
+      background-color: #fafafa;
+      color: #333;
+      text-align: center;
+      padding: 40px;
+    }
+    .container {
+      max-width: 650px;
+      margin: auto;
+      background: white;
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 0 8px rgba(0,0,0,0.1);
+    }
+    textarea, input[type="text"] {
+      width: 100%;
+      margin-top: 10px;
+      padding: 10px;
+      font-size: 1em;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+    button {
+      margin-top: 15px;
+      padding: 10px 25px;
+      background-color: #007BFF;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    button:hover { background-color: #0056b3; }
+    #result { text-align: left; margin-top: 25px; }
+    #suggestions {
+      text-align: left;
+      list-style: none;
+      margin-top: 8px;
+      padding: 0;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      max-height: 180px;
+      overflow-y: auto;
+    }
+    #suggestions li {
+      padding: 6px 10px;
+      cursor: pointer;
+    }
+    #suggestions li:hover {
+      background-color: #f1f1f1;
+    }
+    .loading {
+      color: #666;
+      font-style: italic;
+      padding: 6px 10px;
+    }
+    .mode-indicator {
+      font-size: 0.9em;
+      color: #555;
+      margin-top: 6px;
+    }
+  </style>
 </head>
+
 <body>
   <div class="container">
     <h1>📚 論文救火站</h1>
-    <p>輸入 DOI 或 APA Reference，系統將自動判斷格式：</p>
+    <p>輸入 <strong>DOI</strong> 或 <strong>關鍵字</strong>（系統會自動判斷格式）：</p>
 
-    <!-- <input type="text" id="inputBox" placeholder="請輸入 DOI 或 Reference..."> -->
-    <textarea id="inputBox" placeholder="請輸入 DOI 或 Reference..."></textarea>
+    <input type="text" id="inputBox" placeholder="例如：10.1080/1612197X.2024.2365374 或 aerobic exercise cognition">
+    <div class="mode-indicator" id="modeText">目前為：自動偵測模式</div>
     <ul id="suggestions"></ul>
 
     <button id="generateBtn" onclick="generateCitation()">產生 Citation</button>
@@ -23,57 +87,134 @@
     const inputBox = document.getElementById('inputBox');
     const suggestions = document.getElementById('suggestions');
     const loading = document.getElementById('loading');
+    const modeText = document.getElementById('modeText');
+    let typingTimer;
+    const typingDelay = 400; // ms
 
-    // 🔍 偵測 DOI 開頭自動補全
-    inputBox.addEventListener('input', async (e) => {
-      const value = e.target.value.trim();
-      suggestions.innerHTML = '';
-      if (value.startsWith('10.')) {
-        const res = await fetch(`/api/suggest_doi?prefix=${encodeURIComponent(value)}`);
-        const data = await res.json();
-        if (data.length > 0) {
-          data.forEach(item => {
-            const li = document.createElement('li');
-            li.innerHTML = `<strong>${item.doi}</strong> (${item.year}) - ${item.title}`;
-            li.onclick = () => {
-              inputBox.value = item.doi;
-              suggestions.innerHTML = '';
-            };
-            suggestions.appendChild(li);
-          });
-        }
-      }
+    // 偵測輸入文字
+    inputBox.addEventListener('input', (e) => {
+      clearTimeout(typingTimer);
+      typingTimer = setTimeout(() => handleInput(e.target.value.trim()), typingDelay);
     });
+
+    async function handleInput(e) {
+        const value = e.target.value.trim();
+        const suggestions = document.getElementById('suggestions');
+        const modeText = document.getElementById('modeText');
+
+        if (!value) {
+            suggestions.innerHTML = '';
+            return;
+        }
+
+        // ✅ 顯示 Loading 提示
+        suggestions.innerHTML = '<li style="color:gray;">🔍 正在搜尋 CrossRef，請稍候...</li>';
+
+        try {
+            const response = await fetch(`/api/suggest_doi?prefix=${encodeURIComponent(value)}`);
+            if (!response.ok) throw new Error("CrossRef 回應錯誤");
+
+            const data = await response.json();
+            if (data.length === 0) {
+            suggestions.innerHTML = '<li style="color:gray;">⚠️ 沒找到相關結果，請再試試其他關鍵字。</li>';
+            return;
+            }
+
+            // ✅ 建立結果清單
+            suggestions.innerHTML = data.map(d =>
+            `<li onclick="fillDOI('${d.doi}')">
+                <b>${d.title}</b><br>
+                <small>${d.authors || ''} (${d.year || ''})<br>DOI: ${d.doi}</small>
+            </li>`
+            ).join('');
+
+        } catch (error) {
+            suggestions.innerHTML = '<li style="color:#c00;">❌ CrossRef 無法連線，請稍後再試。</li>';
+            console.warn("CrossRef 連線失敗:", error);
+        }
+    }
 
     // 🚀 產生 Citation
     async function generateCitation() {
-      const input = inputBox.value.trim();
-      if (!input) return alert("請輸入 DOI 或 Reference！");
+        let input = inputBox.value.trim();
+        if (!input) return alert("請輸入 DOI 或 Reference！");
 
-      loading.style.display = 'block';
-      document.getElementById('result').innerHTML = '';
+        // ✅ 自動清理 DOI 前綴
+        input = input.replace(/^https?:\/\/(dx\.)?doi\.org\//i, '');
+        input = input.replace(/^doi:\/\//i, '');
 
-      const res = await fetch('/api/generate_citation', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ input })
-      });
+        loading.style.display = 'block';
+        document.getElementById('result').innerHTML = '';
 
-      const data = await res.json();
-      loading.style.display = 'none';
+        try {
+            const res = await fetch('/api/generate_citation', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ input })
+            });
+            const data = await res.json();
+            loading.style.display = 'none';
 
-      if (data.status === 'success') {
-        document.getElementById('result').innerHTML = `
-          <h2>✅ 結果 (${data.mode.toUpperCase()})</h2>
-          <p><strong>Reference:</strong><br>${data.reference}</p>
-          <p><strong>Parenthetical:</strong> ${data.citations.parenthetical}</p>
-          <p><strong>Narrative:</strong> ${data.citations.narrative}</p>
-          <p><small><i>${data.meta.journal} | ${data.meta.publisher}</i></small></p>
-        `;
-      } else {
-        document.getElementById('result').innerHTML = `<p class="error">${data.message}</p>`;
-      }
+            if (data.status === 'success') {
+                suggestions.innerHTML = '';       // ✅ 清除舊提示
+                modeText.innerText = "已成功產生 Citation ✅";
+
+                document.getElementById('result').innerHTML = `
+                <h2>✅ 結果 (${data.mode.toUpperCase()})</h2>
+
+                <p>
+                    <strong>Reference:</strong><br>
+                    <span class="copyable" onclick="copyText(this)" title="點一下複製 Reference">
+                    ${data.reference}
+                    </span>
+                </p>
+
+                <p>
+                    <strong>Parenthetical:</strong>
+                    <span class="copyable" onclick="copyText(this)" title="點一下複製 Parenthetical Citation">
+                    ${data.citations.parenthetical}
+                    </span>
+                </p>
+
+                <p>
+                    <strong>Narrative:</strong>
+                    <span class="copyable" onclick="copyText(this)" title="點一下複製 Narrative Citation">
+                    ${data.citations.narrative}
+                    </span>
+                </p>
+
+                <p><small><i>${data.meta.journal || ''} | ${data.meta.publisher || ''}</i></small></p>
+                `;
+            } else {
+                document.getElementById('result').innerHTML = `<p class="error">${data.message}</p>`;
+            }
+        } catch {
+            loading.style.display = 'none';
+            document.getElementById('result').innerHTML = `<p class="error">⚠️ 系統錯誤，請稍後再試。</p>`;
+        } 
     }
+
+    function copyText(el) {
+    const text = el.innerText;
+    navigator.clipboard.writeText(text).then(() => {
+        showCopyPopup("已複製！");
+    });
+    }
+
+    // ✅ 顯示 pop-out 提示
+    function showCopyPopup(msg) {
+    let popup = document.createElement("div");
+    popup.innerText = msg;
+    popup.className = "copy-popup";
+    document.body.appendChild(popup);
+
+    // 動畫進出場
+    setTimeout(() => popup.classList.add("show"), 10);
+    setTimeout(() => {
+        popup.classList.remove("show");
+        setTimeout(() => popup.remove(), 300);
+    }, 1500);
+    }    
   </script>
 </body>
 </html>
