@@ -1,10 +1,11 @@
 from flask import Blueprint, request, jsonify
-from services.crossref_service import fetch_metadata_from_doi
+from services.crossref_service import fetch_metadata_from_doi, suggest_doi_candidates
 from services.apa_formatter import format_apa_reference, generate_citation_key
 from services.reference_parser import parse_reference
 
 bp = Blueprint('citation', __name__)
 
+# ============ 1️⃣ Citation 主要功能 ============
 @bp.route('/api/generate_citation', methods=['POST'])
 def generate_citation():
     data = request.get_json()
@@ -33,3 +34,13 @@ def generate_citation():
 
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
+
+# ============ 2️⃣ CrossRef DOI Suggestion 功能 ============
+@bp.route('/api/suggest_doi', methods=['GET'])
+def suggest_doi():
+    prefix = request.args.get('prefix', '').strip()
+    if not prefix:
+        return jsonify([])
+
+    results = suggest_doi_candidates(prefix)
+    return jsonify(results)
