@@ -1,1 +1,3 @@
 .apa/
+__pycache__/
+*.pyc
