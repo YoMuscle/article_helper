@@ -27,6 +27,9 @@
       font-size: 1em;
       border: 1px solid #ccc;
       border-radius: 5px;
+      /* autosize helpers */
+      overflow: hidden;
+      resize: none;
     }
     button {
       margin-top: 15px;
@@ -72,10 +75,14 @@
 <body>
   <div class="container">
     <h1>📚 論文救火站</h1>
-    <p>輸入 <strong>DOI</strong> 或 <strong>關鍵字</strong>（系統會自動判斷格式）：</p>
+    <p>輸入 <strong>DOI</strong>  或  <strong>Title</strong>  或  <strong>Reference</strong>（系統會自動判斷格式）：</p>
 
-    <input type="text" id="inputBox" placeholder="例如：10.1080/1612197X.2024.2365374 或 aerobic exercise cognition">
-    <div class="mode-indicator" id="modeText">目前為：自動偵測模式</div>
+        <!-- 多行輸入欄（placeholder 含範例與 title 要用雙引號的提醒） -->
+        <textarea id="inputBox" rows="2" placeholder='例如:
+        10.1080/1612197X.2024.2365374 或 
+        若要以完整文章標題搜尋，請用雙引號包住標題，
+        例如："The Effect of EEG Neurofeedback Training on Sport Performance..."'></textarea>
+        <div class="mode-indicator" id="modeText">目前為：自動偵測模式</div>
     <ul id="suggestions"></ul>
 
     <button id="generateBtn" onclick="generateCitation()">產生 Citation</button>
@@ -94,8 +101,24 @@
     // 偵測輸入文字
     inputBox.addEventListener('input', (e) => {
       clearTimeout(typingTimer);
-      typingTimer = setTimeout(() => handleInput(e.target.value.trim()), typingDelay);
+      // autosize on input
+      autoResize();
+      // pass the event object to handler (handler reads e.target.value)
+      typingTimer = setTimeout(() => handleInput(e), typingDelay);
     });
+
+    // autosize helper: expand textarea to fit content
+    function autoResize() {
+      try {
+        inputBox.style.height = 'auto';
+        inputBox.style.height = (inputBox.scrollHeight) + 'px';
+      } catch (e) {
+        // ignore
+      }
+    }
+
+    // initial resize in case placeholder is tall
+    autoResize();
 
     async function handleInput(e) {
         const value = e.target.value.trim();
@@ -120,13 +143,28 @@
             return;
             }
 
-            // ✅ 建立結果清單
-            suggestions.innerHTML = data.map(d =>
-            `<li onclick="fillDOI('${d.doi}')">
-                <b>${d.title}</b><br>
-                <small>${d.authors || ''} (${d.year || ''})<br>DOI: ${d.doi}</small>
-            </li>`
-            ).join('');
+      // ✅ 建立結果清單（過濾掉 Table/Figure fragment 類型結果）
+      const filtered = data.filter(d => {
+        const t = (d.title || '').trim();
+        const doi = (d.doi || '').toLowerCase();
+        // skip titles that start with 'Table' or 'Figure' or contain 'Table 1' etc.
+        if (/^\s*(table|figure)\b/i.test(t)) return false;
+        if (/\b(table|figure)\s*\d+\b/i.test(t)) return false;
+        // skip DOIs that look like fragments
+        if (/\/fig|\/table|\/supp|\/append|\/fig-|\/table-/i.test(doi)) return false;
+        return true;
+      });
+
+      if (filtered.length === 0) {
+        suggestions.innerHTML = '<li style="color:gray;">⚠️ 沒找到非 fragment 的結果，請改用較短或不同的關鍵字。</li>';
+      } else {
+        suggestions.innerHTML = filtered.map(d =>
+          `<li onclick="fillDOI('${encodeURIComponent(d.doi)}')">
+            <b>${d.title}</b><br>
+            <small>${d.authors || ''} (${d.year || ''})<br>DOI: ${d.doi}</small>
+          </li>`
+        ).join('');
+      }
 
         } catch (error) {
             suggestions.innerHTML = '<li style="color:#c00;">❌ CrossRef 無法連線，請稍後再試。</li>';
@@ -193,6 +231,20 @@
             document.getElementById('result').innerHTML = `<p class="error">⚠️ 系統錯誤，請稍後再試。</p>`;
         } 
     }
+
+  // 當使用者點選 suggestion，將 DOI 填回輸入框並自動產生 citation
+  function fillDOI(encodedDoi) {
+    try {
+      const doi = decodeURIComponent(encodedDoi || '');
+      inputBox.value = doi;
+      // 清除建議列表
+      suggestions.innerHTML = '';
+      // 立即產生 citation
+      generateCitation();
+    } catch (e) {
+      console.warn('fillDOI error', e);
+    }
+  }
 
     function copyText(el) {
     const text = el.innerText;

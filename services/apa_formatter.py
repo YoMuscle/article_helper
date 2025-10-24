@@ -1,22 +1,37 @@
 def format_apa_reference(meta):
     """根據 metadata 生成 APA 格式的 reference"""
-    authors = ", ".join(meta.get("authors", []))
-    year = meta.get("year", "n.d.")
+    authors_list = meta.get("authors", []) or []
+    # normalize authors: ensure it's a list of non-empty strings
+    authors_list = [a for a in authors_list if isinstance(a, str) and a.strip()]
+    year = meta.get("year") or "n.d."
     title = meta.get("title", "")
     journal = meta.get("journal", "")
     doi = meta.get("doi", "")
 
-    if doi:
-        return f"{authors} ({year}). {title}. *{journal}*. https://doi.org/{doi}"
+    if authors_list:
+        authors = ", ".join(authors_list)
+        byline = f"{authors} ({year})."
     else:
-        return f"{authors} ({year}). {title}. *{journal}*."
+        # no authors available — show year-first byline
+        byline = f"({year})."
+
+    if doi:
+        if journal:
+            return f"{byline} {title}. *{journal}*. https://doi.org/{doi}"
+        else:
+            return f"{byline} {title}. https://doi.org/{doi}"
+    else:
+        if journal:
+            return f"{byline} {title}. *{journal}*."
+        else:
+            return f"{byline} {title}."
 
 def generate_citation_key(meta):
     """生成 Parenthetical / Narrative citation key"""
     authors = meta.get("authors", [])
     year = meta.get("year", "n.d.")
     if not authors:
-        return {"parenthetical": "(Unknown, {year})", "narrative": f"Unknown ({year})"}
+        return {"parenthetical": f"(Unknown, {year})", "narrative": f"Unknown ({year})"}
 
     first_author = authors[0].split(",")[0]
 
