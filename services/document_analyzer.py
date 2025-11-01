@@ -132,6 +132,10 @@ class DocumentAnalyzer:
             if not line:
                 continue
             
+            # 跳過常見的標題行
+            if re.match(r'^(References|Reference|參考文獻|参考文献|REFERENCES|Bibliography|Works Cited|Literatur|Bibliographie)$', line, re.IGNORECASE):
+                continue
+            
             # 判斷是否是新的參考文獻開始
             # 通常以大寫字母開頭，且符合 "姓, 名縮寫" 或 "姓 (" 的模式
             # 如果當前參考文獻已經有內容且包含年份，且新行看起來是新參考文獻的開頭
@@ -293,29 +297,63 @@ class DocumentAnalyzer:
             return current_section
         
         # 先找所有括號內引用
+        processed_ranges = []  # 記錄已處理的位置範圍，避免重複處理
+        
         for pattern in self.parenthetical_patterns:
             matches = re.finditer(pattern, text)
             for match in matches:
+                # 檢查這個 match 是否已經被處理過
+                match_start = match.start()
+                match_end = match.end()
+                is_already_processed = False
+                for proc_start, proc_end in processed_ranges:
+                    # 如果有重疊，跳過
+                    if not (match_end <= proc_start or match_start >= proc_end):
+                        is_already_processed = True
+                        break
+                
+                if is_already_processed:
+                    continue
+                
+                # 標記這個範圍為已處理
+                processed_ranges.append((match_start, match_end))
+                
                 citation_text = match.group()
                 section = get_section(match.start())
                 
                 # 檢查是否包含分號（表示多個引用）
                 if ';' in citation_text:
+                    # 先檢查分號前後的空格格式
+                    semicolon_errors = []
+                    if re.search(r'\s;', citation_text):
+                        semicolon_errors.append('APA 7 格式中，分號前不應該有空格')
+                    if re.search(r';[^\s)]', citation_text):  # 注意：分號後可以是空格或右括號
+                        semicolon_errors.append('APA 7 格式中，分號後應該有空格，例如：(Author A, 2015; Author B, 2016)')
+                    
                     # 分割多個引用
                     inner = citation_text[1:-1]  # 移除括號
                     parts = inner.split(';')
-                    for part in parts:
+                    for i, part in enumerate(parts):
                         part = part.strip()
                         if part and re.search(r'\d{4}', part):
-                            citations.append({
+                            # 為每個部分計算不同的位置偏移，避免去重時被誤刪
+                            # 使用微小的位置偏移（0.1, 0.2, ...）來區分同一括號內的多個引用
+                            position_offset = match.start() + (i * 0.1)
+                            citation_dict = {
                                 'text': f"({part})",
                                 'original_text': part,
                                 'type': 'parenthetical',
-                                'position': match.start(),
+                                'position': position_offset,  # 使用偏移後的位置
                                 'end_position': match.end(),
                                 'section': section,
-                                'has_parentheses': True
-                            })
+                                'has_parentheses': True,
+                                'from_multi_citation': True,  # 標記來自多重引用
+                                'original_multi_citation': citation_text  # 保存原始多重引用文本
+                            }
+                            # 如果有分號格式錯誤，只在第一個引用上標記（避免重複）
+                            if i == 0 and semicolon_errors:
+                                citation_dict['semicolon_format_errors'] = semicolon_errors
+                            citations.append(citation_dict)
                 else:
                     # 檢查是否是同一作者多個年份（格式錯誤但仍需拆分來匹配）
                     # 例如：(Wang et al., 2015, 2016)
@@ -360,6 +398,19 @@ class DocumentAnalyzer:
         for pattern in self.malformed_parenthetical_patterns:
             matches = re.finditer(pattern, text)
             for match in matches:
+                # 檢查是否已經被 parenthetical patterns 處理過
+                match_start = match.start()
+                match_end = match.end()
+                is_already_processed = False
+                for proc_start, proc_end in processed_ranges:
+                    # 如果有重疊，跳過（因為已經被正常的 parenthetical pattern 處理了）
+                    if not (match_end <= proc_start or match_start >= proc_end):
+                        is_already_processed = True
+                        break
+                
+                if is_already_processed:
+                    continue
+                
                 citation_text = match.group()
                 section = get_section(match.start())
                 
@@ -398,9 +449,18 @@ class DocumentAnalyzer:
         
         unique_citations = []
         for i, citation in enumerate(citations):
+            # 如果是來自多重引用（分號分隔），不需要去重檢查
+            if citation.get('from_multi_citation', False):
+                unique_citations.append(citation)
+                continue
+            
             # 檢查是否與已選擇的引用重疊
             is_overlapping = False
             for selected in unique_citations:
+                # 跳過多重引用的比對
+                if selected.get('from_multi_citation', False):
+                    continue
+                
                 # 檢查位置範圍是否重疊
                 selected_start = selected['position']
                 selected_end = selected.get('end_position', selected_start + len(selected['text']))
@@ -431,11 +491,62 @@ class DocumentAnalyzer:
         for citation in citations:
             citation_text = citation['text']
             citation_type = citation['type']
+            original_text = citation.get('original_text', citation_text)
             error_messages = []  # 改為列表，可以累積多個錯誤
+            
+            # 檢查作者數量是否與參考文獻匹配
+            # 提取引用中的作者和年份
+            citation_info = self._extract_author_year_from_citation(citation_text)
+            citation_author = citation_info.get('author', '').lower().strip()
+            citation_year = citation_info.get('year', '').strip()
+            
+            if citation_author and citation_year:
+                # 尋找匹配的參考文獻
+                for ref_id, ref_data in reference_dict.items():
+                    ref_authors = ref_data['item'].get('authors', [])
+                    ref_year = ref_data['item'].get('year', '').strip()
+                    
+                    if not ref_authors or not ref_year:
+                        continue
+                    
+                    # 提取第一作者的 last name
+                    first_ref_author = ref_authors[0].split(",")[0].lower().strip()
+                    
+                    # 如果第一作者和年份匹配
+                    if citation_author == first_ref_author and citation_year == ref_year:
+                        # 檢查作者數量是否正確
+                        num_ref_authors = len(ref_authors)
+                        
+                        # 檢查引用中是否使用了 et al.
+                        has_et_al = 'et al.' in citation_text
+                        
+                        # 檢查引用中是否有兩位作者（使用 & 或 and）
+                        has_two_authors = bool(re.search(r'&|and', citation_text, re.IGNORECASE))
+                        
+                        # APA 7 規則：3 位或以上作者必須使用 et al.
+                        if num_ref_authors >= 3:
+                            if not has_et_al:
+                                # 檢查是否錯誤地列出了兩位作者
+                                if has_two_authors:
+                                    error_messages.append(f'APA 7 格式中，3 位或以上作者應使用 "et al."，建議改為: {ref_data["parenthetical"]}')
+                                else:
+                                    error_messages.append(f'APA 7 格式中，3 位或以上作者應使用 "et al."，建議改為: {ref_data["parenthetical"]}')
+                        # APA 7 規則：2 位作者必須列出兩位
+                        elif num_ref_authors == 2:
+                            if has_et_al:
+                                error_messages.append(f'APA 7 格式中，2 位作者應列出兩位作者名，建議改為: {ref_data["parenthetical"]}')
+                        
+                        break  # 找到匹配的參考文獻，停止搜索
             
             # 檢查括號完整性
             if citation.get('malformed', False):
                 error_messages.append('缺少左括號 "("')
+            
+            # 檢查分號格式錯誤（來自多重引用拆分時的檢查）
+            if 'semicolon_format_errors' in citation:
+                error_messages.extend(citation['semicolon_format_errors'])
+                # 使用原始多重引用文本作為錯誤報告的引用
+                citation_text = citation.get('original_multi_citation', citation_text)
             
             # 檢查 et al. 前面是否有多餘的逗號（APA 7 不應該有）
             if ', et al.' in citation_text:
@@ -659,79 +770,61 @@ class DocumentAnalyzer:
 
 
     def _mark_cited_references(self, citations: list, reference_dict: dict) -> list:
-        """改良版：使用模糊比對（第一作者 last name + 年份）來標記已引用的參考文獻"""
+        """簡化版：使用第一作者 + 年份的模糊匹配來標記引用狀態"""
         
         # 重置所有引用狀態
         for ref in reference_dict.values():
             ref['cited'] = False
         
-        # 對每個 citation，找出對應的 reference 並標記
-        for citation in citations:
-            citation_text = citation['text']
-            original_text = citation.get('original_text', citation_text)
+        # 對每個 reference，檢查其 citation key 是否出現在 citations 中
+        for ref_id, ref_data in reference_dict.items():
+            parenthetical = ref_data['parenthetical']
+            narrative = ref_data['narrative']
             
-            # 提取第一作者和年份
-            citation_info = self._extract_author_year_from_citation(citation_text)
-            citation_author = citation_info.get('author', '').lower().strip()
-            citation_year = citation_info.get('year', '').strip()
+            # 提取參考文獻的第一作者和年份
+            ref_authors = ref_data['item'].get('authors', [])
+            ref_year = ref_data['item'].get('year', '').strip()
             
-            if not citation_author or not citation_year:
-                # 無法提取作者或年份，嘗試精確匹配
-                for ref_id, ref_data in reference_dict.items():
-                    if self._exact_citation_match(citation_text, original_text, ref_data):
-                        ref_data['cited'] = True
-                        break
+            if not ref_authors or not ref_year:
                 continue
             
-            # 在 reference_dict 中尋找匹配的項目
-            matching_refs = []
-            for ref_id, ref_data in reference_dict.items():
-                ref_authors = ref_data['item'].get('authors', [])
-                ref_year = ref_data['item'].get('year', '').strip()
-                
-                if not ref_authors or not ref_year:
-                    continue
-                
-                # 提取第一作者的 last name
-                first_ref_author = ref_authors[0].split(",")[0].lower().strip()
-                
-                # 比對第一作者 + 年份
-                if citation_author == first_ref_author and citation_year == ref_year:
-                    matching_refs.append((ref_id, ref_data))
+            first_ref_author = ref_authors[0].split(",")[0].lower().strip()
             
-            # 標記找到的 reference
-            if len(matching_refs) == 1:
-                # 只找到一個，直接標記
-                matching_refs[0][1]['cited'] = True
-            elif len(matching_refs) > 1:
-                # 找到多個，嘗試精確匹配
-                def normalize_citation(text):
-                    text = text.replace(', et al.', ' et al.')
-                    text = text.replace(', et al,', ' et al,')
-                    text = re.sub(r'et al\.?,?\s*', 'et al., ', text)
-                    text = re.sub(r'\band\b', '&', text, flags=re.IGNORECASE)
-                    text = re.sub(r',(\d)', r', \1', text)
-                    return text
+            # 移除括號和標準化格式以便比對
+            def normalize(text):
+                text = text.replace('(', '').replace(')', '')
+                text = ' '.join(text.split())  # 標準化空白
+                text = text.lower()
+                return text
+            
+            parenthetical_norm = normalize(parenthetical)
+            narrative_norm = normalize(narrative)
+            
+            # 檢查是否有任何 citation 匹配
+            for citation in citations:
+                citation_norm = normalize(citation['text'])
                 
-                normalized_citation = normalize_citation(citation_text)
-                original_text = citation.get('original_text', citation_text)
-                normalized_original = normalize_citation(original_text)
+                # 方法 1: 精確比對（忽略 & 和 and 的差異）
+                def exact_matches(key_norm, cit_norm):
+                    if key_norm == cit_norm:
+                        return True
+                    # 嘗試 & <-> and 轉換
+                    key_with_and = key_norm.replace('&', 'and')
+                    key_with_amp = key_norm.replace(' and ', ' & ')
+                    if key_with_and == cit_norm or key_with_amp == cit_norm:
+                        return True
+                    return False
                 
-                for ref_id, ref_data in matching_refs:
-                    parenthetical = normalize_citation(ref_data['parenthetical'])
-                    narrative = normalize_citation(ref_data['narrative'])
-                    
-                    if parenthetical in normalized_citation or narrative in normalized_citation:
-                        ref_data['cited'] = True
-                        break
-                    
-                    # 額外檢查：移除括號後比對
-                    if ref_data['parenthetical'].startswith('(') and ref_data['parenthetical'].endswith(')'):
-                        inner_citation = ref_data['parenthetical'][1:-1]
-                        normalized_inner = normalize_citation(inner_citation)
-                        if normalized_inner == normalized_original:
-                            ref_data['cited'] = True
-                            break
+                # 方法 2: 模糊匹配（第一作者 + 年份）
+                citation_info = self._extract_author_year_from_citation(citation['text'])
+                citation_author = citation_info.get('author', '').lower().strip()
+                citation_year = citation_info.get('year', '').strip()
+                
+                fuzzy_match = (citation_author == first_ref_author and citation_year == ref_year)
+                
+                if exact_matches(parenthetical_norm, citation_norm) or exact_matches(narrative_norm, citation_norm) or fuzzy_match:
+                    ref_data['cited'] = True
+                    break
         
         # 回傳狀態
         citation_status = []
@@ -741,7 +834,7 @@ class DocumentAnalyzer:
             
             citation_status.append({
                 'reference': ref['item']['text'],
-                'authors_display': authors_display,  # 用於前端顯示
+                'authors_display': authors_display,
                 'year': ref['item'].get('year', ''),
                 'parenthetical': ref['parenthetical'],
                 'narrative': ref['narrative'],

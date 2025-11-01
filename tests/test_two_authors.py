@@ -1,7 +1,11 @@
 ﻿"""
 測試兩位作者的參考文獻解析
 """
-from ..services.document_analyzer import DocumentAnalyzer
+import sys
+import os
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+from services.document_analyzer import DocumentAnalyzer
 import re
 
 def test_two_author_parsing():
@@ -38,7 +42,7 @@ Anderson, K., Brown, L., & Davis, M. (2021). Another test. Science, 15, 789-800.
         print(f"年份: {ref['year']}")
         
         # 生成引用格式
-        from ..services.apa_formatter import generate_citation_key
+        from services.apa_formatter import generate_citation_key
         citation_keys = generate_citation_key({
             'authors': ref['authors'],
             'year': ref['year']
@@ -59,7 +63,7 @@ Anderson, K., Brown, L., & Davis, M. (2021). Another test. Science, 15, 789-800.
             print(f"   作者 1: {aly_kojima['authors'][0]}")
             print(f"   作者 2: {aly_kojima['authors'][1]}")
             
-            from ..services.apa_formatter import generate_citation_key
+            from services.apa_formatter import generate_citation_key
             citation_keys = generate_citation_key({
                 'authors': aly_kojima['authors'],
                 'year': aly_kojima['year']
