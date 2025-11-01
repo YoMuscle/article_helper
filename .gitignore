@@ -3,4 +3,4 @@ __pycache__/
 *.pyc
 services/__pycache__/*.pyc
 routes/__pycache__/*.pyc
-prompt/
+prompt/*.json
