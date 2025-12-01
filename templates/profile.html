@@ -221,10 +221,35 @@
             <div class="col-md-3 fw-bold">驗證狀態：</div>
             <div class="col-md-9" id="verificationStatus"></div>
           </div>
-          <div class="row">
+          <div class="row mb-3">
             <div class="col-md-3 fw-bold">登入方式：</div>
             <div class="col-md-9" id="loginMethod"></div>
           </div>
+          <div class="row">
+            <div class="col-md-3 fw-bold">會員狀態：</div>
+            <div class="col-md-9" id="premiumStatus"></div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- 兌換邀請碼（非 Premium 用戶才顯示） -->
+      <div class="card mb-4" id="redeemCodeCard" style="display: none;">
+        <div class="card-header">
+          <h5 class="mb-0"><i class="fas fa-gift me-2"></i>兌換邀請碼</h5>
+        </div>
+        <div class="card-body">
+          <p class="text-muted mb-3">輸入邀請碼即可升級為 Premium 會員，解鎖所有主題！</p>
+          <form id="redeemCodeForm">
+            <div class="input-group">
+              <input type="text" class="form-control" id="inviteCode" 
+                     placeholder="輸入邀請碼（例如：ABCD1234EFGH）" 
+                     style="text-transform: uppercase;" required>
+              <button type="submit" class="btn btn-success" id="redeemCodeBtn">
+                <span class="spinner-border spinner-border-sm d-none me-2" id="redeemSpinner"></span>
+                兌換
+              </button>
+            </div>
+          </form>
         </div>
       </div>
       
@@ -337,6 +362,16 @@
           loginMethod.innerHTML = '<span class="badge bg-secondary"><i class="fas fa-envelope me-1"></i>Email</span>';
         }
         
+        // 會員狀態
+        const premiumStatus = document.getElementById('premiumStatus');
+        if (currentUser.is_premium) {
+          premiumStatus.innerHTML = '<span class="badge bg-warning text-dark"><i class="fas fa-crown me-1"></i>Premium 會員</span>';
+        } else {
+          premiumStatus.innerHTML = '<span class="badge bg-secondary"><i class="fas fa-user me-1"></i>免費會員</span>';
+          // 顯示兌換邀請碼卡片
+          document.getElementById('redeemCodeCard').style.display = 'block';
+        }
+        
         // 顯示內容
         document.getElementById('loading').classList.add('d-none');
         document.getElementById('profileContent').classList.remove('d-none');
@@ -418,6 +453,52 @@
           document.getElementById('changePasswordForm').reset();
         } else {
           showError(data.error || '修改失敗');
+        }
+      } catch (error) {
+        showError('系統錯誤');
+      } finally {
+        btn.disabled = false;
+        spinner.classList.add('d-none');
+      }
+    });
+    
+    // 兌換邀請碼
+    document.getElementById('redeemCodeForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const code = document.getElementById('inviteCode').value.trim().toUpperCase();
+      const btn = document.getElementById('redeemCodeBtn');
+      const spinner = document.getElementById('redeemSpinner');
+      
+      if (!code) {
+        showError('請輸入邀請碼');
+        return;
+      }
+      
+      btn.disabled = true;
+      spinner.classList.remove('d-none');
+      hideMessages();
+      
+      try {
+        const response = await fetch('/api/redeem-code', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ code }),
+          credentials: 'include'
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+          showSuccess(data.message);
+          // 更新顯示
+          currentUser.is_premium = true;
+          document.getElementById('premiumStatus').innerHTML = '<span class="badge bg-warning text-dark"><i class="fas fa-crown me-1"></i>Premium 會員</span>';
+          document.getElementById('redeemCodeCard').style.display = 'none';
+          // 更新 localStorage
+          localStorage.setItem('user', JSON.stringify(data.user));
+        } else {
+          showError(data.error || '兌換失敗');
         }
       } catch (error) {
         showError('系統錯誤');

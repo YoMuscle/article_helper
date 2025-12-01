@@ -51,12 +51,27 @@ def load_user(user_id):
 # 建立資料庫表
 with app.app_context():
     db.create_all()
+    
+    # 從環境變數自動升級 Premium 用戶
+    premium_emails = os.getenv('PREMIUM_EMAILS', '')
+    if premium_emails:
+        for email in premium_emails.split(','):
+            email = email.strip().lower()
+            if email:
+                user = User.query.filter_by(email=email).first()
+                if user and not user.is_premium:
+                    user.is_premium = True
+                    user.is_verified = True  # 也自動驗證
+                    db.session.commit()
+                    print(f"[INIT] Upgraded {email} to premium")
 
 # 註冊 blueprints
 from routes.citation import bp as citation_bp
 from routes.auth import bp as auth_bp
+from routes.admin import bp as admin_bp
 app.register_blueprint(citation_bp)
 app.register_blueprint(auth_bp)
+app.register_blueprint(admin_bp)
 
 # 文件上傳設定
 UPLOAD_FOLDER = 'uploads'
