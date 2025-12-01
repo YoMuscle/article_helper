@@ -31,9 +31,13 @@ database_url = (
     os.getenv('POSTGRESQL_URI') or 
     'sqlite:///apa_checker.db'
 )
-# Heroku/某些平台使用 postgres:// 但 SQLAlchemy 需要 postgresql://
+# 處理 PostgreSQL URL 格式
 if database_url.startswith('postgres://'):
-    database_url = database_url.replace('postgres://', 'postgresql://', 1)
+    # 使用 psycopg3 驅動（postgresql+psycopg://）
+    database_url = database_url.replace('postgres://', 'postgresql+psycopg://', 1)
+elif database_url.startswith('postgresql://') and '+' not in database_url.split('://')[0]:
+    # 將 postgresql:// 改為 postgresql+psycopg://
+    database_url = database_url.replace('postgresql://', 'postgresql+psycopg://', 1)
 app.config['SQLALCHEMY_DATABASE_URI'] = database_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
