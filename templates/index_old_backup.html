@@ -1,0 +1,1111 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <title>論文救火站 - APA Citation Generator</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <!-- Bootstrap CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <style>
+    body {
+      font-family: "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: #333;
+      min-height: 100vh;
+      padding: 20px 0;
+    }
+    .container {
+      max-width: 1200px;
+      margin: auto;
+      background: white;
+      padding: 30px;
+      border-radius: 15px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    }
+    .nav-tabs .nav-link {
+      border-radius: 10px 10px 0 0;
+      font-weight: 500;
+      color: #666;
+    }
+    .nav-tabs .nav-link.active {
+      background-color: #007BFF;
+      color: white;
+      border-color: #007BFF;
+    }
+    textarea, input[type="text"], input[type="file"] {
+      width: 100%;
+      margin-top: 10px;
+      padding: 12px;
+      font-size: 1em;
+      border: 2px solid #e9ecef;
+      border-radius: 8px;
+      transition: border-color 0.3s ease;
+    }
+    textarea:focus, input:focus {
+      border-color: #007BFF;
+      outline: none;
+      box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25);
+    }
+    .btn {
+      padding: 12px 25px;
+      font-weight: 500;
+      border-radius: 8px;
+      transition: all 0.3s ease;
+    }
+    .btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+    .card {
+      border: none;
+      border-radius: 12px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+      margin-bottom: 20px;
+    }
+    .card-header {
+      background: linear-gradient(45deg, #007BFF, #0056b3);
+      color: white;
+      border-radius: 12px 12px 0 0 !important;
+      font-weight: 600;
+    }
+    .table {
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .table th {
+      background-color: #f8f9fa;
+      border-top: none;
+      font-weight: 600;
+      color: #495057;
+    }
+    .table-striped tbody tr:nth-of-type(odd) {
+      background-color: rgba(0,123,255,.03);
+    }
+    .badge {
+      font-size: 0.9em;
+      padding: 6px 12px;
+      border-radius: 20px;
+    }
+    .nav-pills .nav-link {
+      border-radius: 25px;
+      margin-right: 10px;
+      font-weight: 500;
+    }
+    .nav-pills .nav-link.active {
+      background-color: #007BFF;
+    }
+    .alert {
+      border: none;
+      border-radius: 10px;
+    }
+    .spinner-border-sm {
+      width: 1rem;
+      height: 1rem;
+    }
+    .text-center.text-muted {
+      padding: 40px;
+    }
+    .text-center.text-muted i {
+      color: #28a745;
+    }
+    #result { text-align: left; margin-top: 25px; }
+    #suggestions {
+      text-align: left;
+      list-style: none;
+      margin-top: 8px;
+      padding: 0;
+      border: 2px solid #e9ecef;
+      border-radius: 8px;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+    #suggestions li {
+      padding: 12px 15px;
+      cursor: pointer;
+      border-bottom: 1px solid #f8f9fa;
+      transition: background-color 0.2s ease;
+    }
+    #suggestions li:hover {
+      background-color: #f8f9fa;
+    }
+    #suggestions li:last-child {
+      border-bottom: none;
+    }
+    .loading {
+      color: #666;
+      font-style: italic;
+      padding: 10px 15px;
+    }
+    .mode-indicator {
+      font-size: 0.9em;
+      color: #6c757d;
+      margin-top: 8px;
+      font-weight: 500;
+    }
+    .stats-card {
+      text-align: center;
+      padding: 20px;
+      border-radius: 12px;
+      background: white;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+    }
+    .stats-number {
+      font-size: 2rem;
+      font-weight: 700;
+      margin-bottom: 5px;
+    }
+    .stats-label {
+      font-size: 0.9rem;
+      color: #6c757d;
+      font-weight: 500;
+    }
+    
+    /* 新增：摘要卡片樣式 */
+    #summaryCard {
+      animation: fadeInUp 0.6s ease-out;
+    }
+    
+    #summaryCardContainer {
+      transition: all 0.3s ease;
+      border-radius: 15px;
+    }
+    
+    #summaryCardContainer .bg-light {
+      background: rgba(255, 255, 255, 0.9) !important;
+      border-radius: 10px;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    
+    #summaryCardContainer .bg-light:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+    }
+    
+    #summaryStatus {
+      background: rgba(255, 255, 255, 0.95);
+      border: none;
+      font-size: 1.1rem;
+      border-radius: 10px;
+      padding: 15px 20px;
+    }
+    
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- 導航列 -->
+  <nav class="navbar navbar-expand-lg navbar-dark" style="background: rgba(0,0,0,0.2); margin-bottom: 20px;">
+    <div class="container">
+      <a class="navbar-brand" href="/">
+        <i class="fas fa-graduation-cap me-2"></i>論文救火站
+      </a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav ms-auto">
+          <!-- 未登入時顯示 -->
+          <li class="nav-item" id="navLogin">
+            <a class="nav-link" href="/login">
+              <i class="fas fa-sign-in-alt me-1"></i>登入
+            </a>
+          </li>
+          <li class="nav-item" id="navRegister">
+            <a class="nav-link" href="/register">
+              <i class="fas fa-user-plus me-1"></i>註冊
+            </a>
+          </li>
+          <!-- 已登入時顯示 -->
+          <li class="nav-item dropdown" id="navUser" style="display: none;">
+            <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown">
+              <i class="fas fa-user-circle me-1"></i><span id="navUsername">使用者</span>
+            </a>
+            <ul class="dropdown-menu dropdown-menu-end">
+              <li><a class="dropdown-item" href="/my-documents">
+                <i class="fas fa-folder me-2"></i>我的文件
+              </a></li>
+              <li><a class="dropdown-item" href="/profile">
+                <i class="fas fa-user-edit me-2"></i>個人資料
+              </a></li>
+              <li><hr class="dropdown-divider"></li>
+              <li><a class="dropdown-item" href="#" onclick="logout(); return false;">
+                <i class="fas fa-sign-out-alt me-2"></i>登出
+              </a></li>
+            </ul>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <div class="container">
+    <h1>📚 論文救火站</h1>
+    
+    <!-- 驗證提示 -->
+    <div id="verificationAlert" class="alert alert-warning alert-dismissible fade show d-none" role="alert">
+      <i class="fas fa-exclamation-triangle me-2"></i>
+      <strong>請驗證您的 Email</strong> - 您需要先驗證 email 才能使用文檔檢查功能。
+      <button type="button" class="btn btn-sm btn-outline-warning ms-2" onclick="resendVerification()">重新發送驗證郵件</button>
+      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    <ul class="nav nav-tabs" id="myTab" role="tablist" style="margin-bottom: 20px;">
+      <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="generate-tab" data-bs-toggle="tab" data-bs-target="#generate" type="button" role="tab">產生 Citation</button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="document-tab" data-bs-toggle="tab" data-bs-target="#document" type="button" role="tab">文檔檢查</button>
+      </li>
+    </ul>
+    <div class="tab-content" id="myTabContent">
+      <div class="tab-pane fade show active" id="generate" role="tabpanel" aria-labelledby="generate-tab">
+        <p>輸入 <strong>DOI</strong>  或  <strong>Title</strong>  或  <strong>Reference</strong>（系統會自動判斷格式）：</p>
+        <textarea id="inputBox" rows="2" placeholder='例如:
+        10.1080/1612197X.2024.2365374 或 
+        若要以完整文章標題搜尋，請用雙引號包住標題，
+        例如："The Effect of EEG Neurofeedback Training on Sport Performance..."'></textarea>
+        <div class="mode-indicator" id="modeText">目前為：自動偵測模式</div>
+        <ul id="suggestions"></ul>
+        <button id="generateBtn" onclick="generateCitation()">產生 Citation</button>
+        <div id="loading" style="display:none;">⏳ 正在處理中...</div>
+        <div id="result"></div>
+      </div>
+      <div class="tab-pane fade" id="document" role="tabpanel" aria-labelledby="document-tab">
+        <div class="row">
+          <div class="col-12">
+            <div class="text-center mb-4">
+              <h3><i class="fas fa-file-word text-primary"></i> 文檔引用檢查</h3>
+              <p class="text-muted">上傳 Word 文檔 (.doc 或 .docx)，系統將全面檢查引用格式是否符合 APA 7 規範</p>
+            </div>
+            
+            <!-- 上傳區域 -->
+            <div class="card mb-4">
+              <div class="card-header">
+                <i class="fas fa-cloud-upload-alt me-2"></i>上傳文檔
+              </div>
+              <div class="card-body">
+                <form id="documentForm" enctype="multipart/form-data">
+                  <div class="mb-3">
+                    <label for="documentFile" class="form-label">選擇 Word 文檔</label>
+                    <input type="file" class="form-control" id="documentFile" accept=".doc,.docx" required>
+                    <div class="form-text">
+                      <i class="fas fa-info-circle me-1"></i>
+                      支援 .doc 和 .docx 格式，文件大小限制 16MB
+                    </div>
+                  </div>
+                  <button type="submit" class="btn btn-primary btn-lg" id="analyzeBtn">
+                    <span class="spinner-border spinner-border-sm d-none me-2" id="analyzeSpinner"></span>
+                    <i class="fas fa-search me-2"></i>開始分析
+                  </button>
+                </form>
+              </div>
+            </div></div>
+        </div>
+        <!-- 分析結果區域 -->
+        <div id="analysisResults" class="d-none">
+          
+          <!-- 新增：整體狀態摘要卡片 -->
+          <div id="summaryCard" class="mb-4">
+            <div class="card border-0 shadow-lg" id="summaryCardContainer">
+              <div class="card-body p-4">
+                <div class="d-flex align-items-center mb-3">
+                  <i class="fas fa-clipboard-check fa-2x me-3"></i>
+                  <h3 class="mb-0">檢查摘要</h3>
+                </div>
+                <div class="alert mb-3" id="summaryStatus" role="alert">
+                  <!-- 狀態訊息 -->
+                </div>
+                <div class="row g-3">
+                  <div class="col-6 col-md-4 col-lg-2">
+                    <div class="text-center p-3 bg-light rounded">
+                      <div class="fs-2 fw-bold text-danger" id="totalErrors">0</div>
+                      <div class="small text-muted">格式錯誤</div>
+                    </div>
+                  </div>
+                  <div class="col-6 col-md-4 col-lg-2">
+                    <div class="text-center p-3 bg-light rounded">
+                      <div class="fs-2 fw-bold text-warning" id="totalMissing">0</div>
+                      <div class="small text-muted">缺少參考文獻</div>
+                    </div>
+                  </div>
+                  <div class="col-6 col-md-4 col-lg-2">
+                    <div class="text-center p-3 bg-light rounded">
+                      <div class="fs-2 fw-bold text-info" id="totalUncited">0</div>
+                      <div class="small text-muted">未引用文獻</div>
+                    </div>
+                  </div>
+                  <div class="col-6 col-md-4 col-lg-2">
+                    <div class="text-center p-3 bg-light rounded">
+                      <div class="fs-2 fw-bold text-primary" id="totalReferencesSum">0</div>
+                      <div class="small text-muted">總參考文獻</div>
+                    </div>
+                  </div>
+                  <div class="col-6 col-md-4 col-lg-2">
+                    <div class="text-center p-3 bg-light rounded">
+                      <div class="fs-2 fw-bold text-success" id="totalCitationsSum">0</div>
+                      <div class="small text-muted">總引用次數</div>
+                    </div>
+                  </div>
+                  <div class="col-6 col-md-4 col-lg-2">
+                    <div class="text-center p-3 bg-light rounded">
+                      <div class="fs-2 fw-bold text-secondary" id="citationRate">0%</div>
+                      <div class="small text-muted">引用率</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- 統計摘要 -->
+          <div class="row mb-4">
+            <div class="col-12">
+              <div class="card">
+                <div class="card-header">
+                  <i class="fas fa-chart-bar me-2"></i>分析摘要
+                </div>
+                <div class="card-body">
+                  <div class="row">
+                    <div class="col-lg-3 col-md-6 mb-3">
+                      <div class="stats-card bg-light border-start border-primary border-4">
+                        <div class="stats-number text-primary" id="totalCitations">0</div>
+                        <div class="stats-label">文內引用總數</div>
+                      </div>
+                    </div>
+                    <div class="col-lg-3 col-md-6 mb-3">
+                      <div class="stats-card bg-light border-start border-info border-4">
+                        <div class="stats-number text-info" id="totalReferences">0</div>
+                        <div class="stats-label">參考文獻總數</div>
+                      </div>
+                    </div>
+                    <div class="col-lg-3 col-md-6 mb-3">
+                      <div class="stats-card bg-light border-start border-warning border-4">
+                        <div class="stats-number text-warning" id="formatErrors">0</div>
+                        <div class="stats-label">格式錯誤</div>
+                      </div>
+                    </div>
+                    <div class="col-lg-3 col-md-6 mb-3">
+                      <div class="stats-card bg-light border-start border-danger border-4">
+                        <div class="stats-number text-danger" id="missingReferences">0</div>
+                        <div class="stats-label">缺少參考文獻</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <!-- 詳細結果標籤 -->
+          <ul class="nav nav-pills justify-content-center mb-4" id="errorTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+              <button class="nav-link active" id="format-errors-tab" data-bs-toggle="pill" data-bs-target="#format-errors" type="button" role="tab">
+                <i class="fas fa-exclamation-triangle me-2"></i>格式錯誤 
+                <span class="badge bg-warning ms-2" id="formatErrorsBadge">0</span>
+              </button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button class="nav-link" id="missing-refs-tab" data-bs-toggle="pill" data-bs-target="#missing-refs" type="button" role="tab">
+                <i class="fas fa-unlink me-2"></i>缺少參考文獻 
+                <span class="badge bg-danger ms-2" id="missingRefsBadge">0</span>
+              </button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button class="nav-link" id="citation-status-tab" data-bs-toggle="pill" data-bs-target="#citation-status" type="button" role="tab">
+                <i class="fas fa-list-check me-2"></i>引用狀態 
+                <span class="badge bg-info ms-2" id="citationStatusBadge">0</span>
+              </button>
+            </li>
+          </ul>
+          <div class="tab-content" id="errorTabContent">
+            <!-- 格式錯誤標籤頁 -->
+            <div class="tab-pane fade show active" id="format-errors" role="tabpanel">
+              <div class="card">
+                <div class="card-header">
+                  <i class="fas fa-exclamation-triangle me-2"></i>引用格式錯誤
+                </div>
+                <div class="card-body">
+                  <div class="table-responsive">
+                    <table class="table table-hover" id="formatErrorsTable">
+                      <thead class="table-light">
+                        <tr>
+                          <th width="12%"><i class="fas fa-bookmark me-2"></i>章節</th>
+                          <th width="35%"><i class="fas fa-quote-left me-2"></i>引用文字</th>
+                          <th width="15%"><i class="fas fa-tag me-2"></i>類型</th>
+                          <th width="38%"><i class="fas fa-info-circle me-2"></i>錯誤描述</th>
+                        </tr>
+                      </thead>
+                      <tbody></tbody>
+                    </table>
+                  </div>
+                  <div id="noFormatErrors" class="text-center text-muted d-none">
+                    <i class="fas fa-check-circle fa-4x mb-3 text-success"></i>
+                    <h5 class="text-success">太棒了！</h5>
+                    <p>沒有發現任何格式錯誤</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <!-- 缺少參考文獻標籤頁 -->
+            <div class="tab-pane fade" id="missing-refs" role="tabpanel">
+              <div class="card">
+                <div class="card-header">
+                  <i class="fas fa-unlink me-2"></i>缺少參考文獻
+                </div>
+                <div class="card-body">
+                  <div class="table-responsive">
+                    <table class="table table-hover" id="missingRefsTable">
+                      <thead class="table-light">
+                        <tr>
+                          <th width="12%"><i class="fas fa-bookmark me-2"></i>章節</th>
+                          <th width="43%"><i class="fas fa-quote-left me-2"></i>文中引用</th>
+                          <th width="45%"><i class="fas fa-info-circle me-2"></i>說明</th>
+                        </tr>
+                      </thead>
+                      <tbody></tbody>
+                    </table>
+                  </div>
+                  <div id="noMissingRefs" class="text-center text-muted d-none">
+                    <i class="fas fa-check-circle fa-4x mb-3 text-success"></i>
+                    <h5 class="text-success">完美匹配！</h5>
+                    <p>所有引用都有對應的參考文獻</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <!-- 引用狀態標籤頁 -->
+            <div class="tab-pane fade" id="citation-status" role="tabpanel">
+              <div class="card">
+                <div class="card-header">
+                  <i class="fas fa-list-check me-2"></i>參考文獻引用狀態
+                </div>
+                <div class="card-body">
+                  <div class="table-responsive">
+                    <table class="table table-hover" id="citationStatusTable">
+                      <thead class="table-light">
+                        <tr>
+                          <th width="10%"><i class="fas fa-check-circle me-2"></i>狀態</th>
+                          <th width="40%"><i class="fas fa-book me-2"></i>參考文獻</th>
+                          <th width="25%"><i class="fas fa-quote-left me-2"></i>Narrative</th>
+                          <th width="25%"><i class="fas fa-quote-right me-2"></i>Parenthetical</th>
+                        </tr>
+                      </thead>
+                      <tbody></tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          </div>
+          <div id="documentError" class="alert alert-danger d-none"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // 全域變數
+    let currentUser = null;
+
+    // 檢查使用者登入狀態
+    async function checkLoginStatus() {
+      try {
+        const response = await fetch('/api/auth/user', {
+          credentials: 'include'
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          currentUser = data.user;
+          updateNavbar(true, currentUser);
+          
+          // 顯示驗證提示
+          if (!currentUser.is_verified) {
+            document.getElementById('verificationAlert').classList.remove('d-none');
+          }
+        } else {
+          currentUser = null;
+          updateNavbar(false);
+        }
+      } catch (error) {
+        console.error('Check login status error:', error);
+        currentUser = null;
+        updateNavbar(false);
+      }
+    }
+
+    // 更新導航列
+    function updateNavbar(isLoggedIn, user = null) {
+      const navLogin = document.getElementById('navLogin');
+      const navRegister = document.getElementById('navRegister');
+      const navUser = document.getElementById('navUser');
+      const navUsername = document.getElementById('navUsername');
+
+      if (isLoggedIn && user) {
+        navLogin.style.display = 'none';
+        navRegister.style.display = 'none';
+        navUser.style.display = 'block';
+        navUsername.textContent = user.username;
+      } else {
+        navLogin.style.display = 'block';
+        navRegister.style.display = 'block';
+        navUser.style.display = 'none';
+      }
+    }
+
+    // 登出功能
+    async function logout() {
+      try {
+        const response = await fetch('/api/auth/logout', {
+          method: 'POST',
+          credentials: 'include'
+        });
+
+        if (response.ok) {
+          window.location.href = '/login';
+        }
+      } catch (error) {
+        console.error('Logout error:', error);
+        window.location.href = '/login';
+      }
+    }
+
+    // 重新發送驗證郵件
+    async function resendVerification() {
+      try {
+        const response = await fetch('/api/auth/resend-verification', {
+          method: 'POST',
+          credentials: 'include'
+        });
+
+        const data = await response.json();
+        
+        if (response.ok) {
+          alert('驗證郵件已發送，請檢查您的收件匣！');
+        } else {
+          alert(data.error || '發送失敗');
+        }
+      } catch (error) {
+        console.error('Resend verification error:', error);
+        alert('發送驗證郵件時發生錯誤');
+      }
+    }
+
+    const inputBox = document.getElementById('inputBox');
+    const suggestions = document.getElementById('suggestions');
+    const loading = document.getElementById('loading');
+    const modeText = document.getElementById('modeText');
+    let typingTimer;
+    const typingDelay = 400; // ms
+
+    // 偵測輸入文字
+    inputBox.addEventListener('input', (e) => {
+      clearTimeout(typingTimer);
+      // autosize on input
+      autoResize();
+      // pass the event object to handler (handler reads e.target.value)
+      typingTimer = setTimeout(() => handleInput(e), typingDelay);
+    });
+
+    // autosize helper: expand textarea to fit content
+    function autoResize() {
+      try {
+        inputBox.style.height = 'auto';
+        inputBox.style.height = (inputBox.scrollHeight) + 'px';
+      } catch (e) {
+        // ignore
+      }
+    }
+
+    // initial resize in case placeholder is tall
+    autoResize();
+
+    async function handleInput(e) {
+        const value = e.target.value.trim();
+        const suggestions = document.getElementById('suggestions');
+        const modeText = document.getElementById('modeText');
+
+        if (!value) {
+            suggestions.innerHTML = '';
+            return;
+        }
+
+        // ✅ 顯示 Loading 提示
+        suggestions.innerHTML = '<li style="color:gray;">🔍 正在搜尋 CrossRef，請稍候...</li>';
+
+        try {
+            const response = await fetch(`/api/suggest_doi?prefix=${encodeURIComponent(value)}`);
+            if (!response.ok) throw new Error("CrossRef 回應錯誤");
+
+            const data = await response.json();
+            if (data.length === 0) {
+            suggestions.innerHTML = '<li style="color:gray;">⚠️ 沒找到相關結果，請再試試其他關鍵字。</li>';
+            return;
+            }
+
+      // ✅ 建立結果清單（過濾掉 Table/Figure fragment 類型結果）
+      const filtered = data.filter(d => {
+        const t = (d.title || '').trim();
+        const doi = (d.doi || '').toLowerCase();
+        // skip titles that start with 'Table' or 'Figure' or contain 'Table 1' etc.
+        if (/^\s*(table|figure)\b/i.test(t)) return false;
+        if (/\b(table|figure)\s*\d+\b/i.test(t)) return false;
+        // skip DOIs that look like fragments
+        if (/\/fig|\/table|\/supp|\/append|\/fig-|\/table-/i.test(doi)) return false;
+        return true;
+      });
+
+      if (filtered.length === 0) {
+        suggestions.innerHTML = '<li style="color:gray;">⚠️ 沒找到非 fragment 的結果，請改用較短或不同的關鍵字。</li>';
+      } else {
+        suggestions.innerHTML = filtered.map(d =>
+          `<li onclick="fillDOI('${encodeURIComponent(d.doi)}')">
+            <b>${d.title}</b><br>
+            <small>${d.authors || ''} (${d.year || ''})<br>DOI: ${d.doi}</small>
+          </li>`
+        ).join('');
+      }
+
+        } catch (error) {
+            suggestions.innerHTML = '<li style="color:#c00;">❌ CrossRef 無法連線，請稍後再試。</li>';
+            console.warn("CrossRef 連線失敗:", error);
+        }
+    }
+
+    // 🚀 產生 Citation
+    async function generateCitation() {
+        let input = inputBox.value.trim();
+        if (!input) return alert("請輸入 DOI 或 Reference！");
+
+        // ✅ 自動清理 DOI 前綴
+        input = input.replace(/^https?:\/\/(dx\.)?doi\.org\//i, '');
+        input = input.replace(/^doi:\/\//i, '');
+
+        loading.style.display = 'block';
+        document.getElementById('result').innerHTML = '';
+
+        try {
+            const res = await fetch('/api/generate_citation', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ input })
+            });
+            const data = await res.json();
+            loading.style.display = 'none';
+
+            if (data.status === 'success') {
+                suggestions.innerHTML = '';       // ✅ 清除舊提示
+                modeText.innerText = "已成功產生 Citation ✅";
+
+                document.getElementById('result').innerHTML = `
+                <h2>✅ 結果 (${data.mode.toUpperCase()})</h2>
+
+                <p>
+                    <strong>Reference:</strong><br>
+                    <span class="copyable" onclick="copyText(this)" title="點一下複製 Reference">
+                    ${data.reference}
+                    </span>
+                </p>
+
+                <p>
+                    <strong>Parenthetical:</strong>
+                    <span class="copyable" onclick="copyText(this)" title="點一下複製 Parenthetical Citation">
+                    ${data.citations.parenthetical}
+                    </span>
+                </p>
+
+                <p>
+                    <strong>Narrative:</strong>
+                    <span class="copyable" onclick="copyText(this)" title="點一下複製 Narrative Citation">
+                    ${data.citations.narrative}
+                    </span>
+                </p>
+
+                <p><small><i>${data.meta.journal || ''} | ${data.meta.publisher || ''}</i></small></p>
+                `;
+            } else {
+                document.getElementById('result').innerHTML = `<p class="error">${data.message}</p>`;
+            }
+        } catch {
+            loading.style.display = 'none';
+            document.getElementById('result').innerHTML = `<p class="error">⚠️ 系統錯誤，請稍後再試。</p>`;
+        } 
+    }
+
+  // 當使用者點選 suggestion，將 DOI 填回輸入框並自動產生 citation
+  function fillDOI(encodedDoi) {
+    try {
+      const doi = decodeURIComponent(encodedDoi || '');
+      inputBox.value = doi;
+      // 清除建議列表
+      suggestions.innerHTML = '';
+      // 立即產生 citation
+      generateCitation();
+    } catch (e) {
+      console.warn('fillDOI error', e);
+    }
+  }
+
+    function copyText(el) {
+    const text = el.innerText;
+    navigator.clipboard.writeText(text).then(() => {
+        showCopyPopup("已複製！");
+    });
+    }
+
+    // ✅ 顯示 pop-out 提示
+    function showCopyPopup(msg) {
+    let popup = document.createElement("div");
+    popup.innerText = msg;
+    popup.className = "copy-popup";
+    document.body.appendChild(popup);
+
+    // 動畫進出場
+    setTimeout(() => popup.classList.add("show"), 10);
+    setTimeout(() => {
+        popup.classList.remove("show");
+        setTimeout(() => popup.remove(), 300);
+    }, 1500);
+  }    
+
+  // 文檔分析相關功能
+  document.addEventListener('DOMContentLoaded', function() {
+    // 檢查登入狀態
+    checkLoginStatus();
+    
+    // 檢查是否從我的文件頁面返回查看文件
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.has('view')) {
+      const docData = sessionStorage.getItem('viewingDocument');
+      if (docData) {
+        const document = JSON.parse(docData);
+        if (document.analysis_result) {
+          // 切換到文檔檢查 tab
+          const documentTab = document.getElementById('document-tab');
+          if (documentTab) {
+            const tab = new bootstrap.Tab(documentTab);
+            tab.show();
+          }
+          // 顯示結果
+          displayAnalysisResults(document.analysis_result);
+          const resultsDiv = document.getElementById('analysisResults');
+          if (resultsDiv) {
+            resultsDiv.classList.remove('d-none');
+          }
+        }
+        sessionStorage.removeItem('viewingDocument');
+      }
+    }
+    
+    const documentForm = document.getElementById('documentForm');
+    if (documentForm) {
+      documentForm.addEventListener('submit', handleDocumentAnalysis);
+    }
+  });
+
+  async function handleDocumentAnalysis(e) {
+    e.preventDefault();
+    
+    // 檢查是否已登入
+    if (!currentUser) {
+      if (confirm('文檔檢查功能需要登入。是否前往登入頁面？')) {
+        window.location.href = '/login?redirect=' + encodeURIComponent(window.location.pathname);
+      }
+      return;
+    }
+    
+    // 檢查是否已驗證
+    if (!currentUser.is_verified) {
+      alert('請先驗證您的 email 地址才能使用文檔檢查功能。');
+      return;
+    }
+    
+    const fileInput = document.getElementById('documentFile');
+    const analyzeBtn = document.getElementById('analyzeBtn');
+    const spinner = document.getElementById('analyzeSpinner');
+    const errorDiv = document.getElementById('documentError');
+    const resultsDiv = document.getElementById('analysisResults');
+    hideElement(errorDiv);
+    hideElement(resultsDiv);
+    if (!fileInput.files[0]) {
+      showError(errorDiv, '請選擇要分析的文檔');
+      return;
+    }
+    spinner.classList.remove('d-none');
+    analyzeBtn.disabled = true;
+    try {
+      const formData = new FormData();
+      formData.append('file', fileInput.files[0]);
+      const response = await fetch('/api/analyze_document', {
+        method: 'POST',
+        credentials: 'include',
+        body: formData
+      });
+      const result = await response.json();
+      if (response.status === 401) {
+        alert('請先登入');
+        window.location.href = '/login';
+        return;
+      }
+      if (response.status === 403) {
+        alert('請先驗證您的 email 地址');
+        return;
+      }
+      if (!response.ok) {
+        throw new Error(result.error || '分析失敗');
+      }
+      displayAnalysisResults(result);
+      showElement(resultsDiv);
+      
+      // 清空文件輸入
+      fileInput.value = '';
+    } catch (error) {
+      console.error('Document analysis error:', error);
+      showError(errorDiv, `分析錯誤: ${error.message}`);
+    } finally {
+      spinner.classList.add('d-none');
+      analyzeBtn.disabled = false;
+    }
+  }
+
+  function displayAnalysisResults(data) {
+    // 顯示摘要卡片
+    if (data.summary) {
+      const summaryCard = document.getElementById('summaryCard');
+      const summaryStatus = document.getElementById('summaryStatus');
+      const summaryCardContainer = document.getElementById('summaryCardContainer');
+      
+      // 根據狀態設置不同的樣式
+      const statusClasses = {
+        'excellent': 'alert-success',
+        'good': 'alert-info',
+        'needs_revision': 'alert-warning',
+        'needs_major_revision': 'alert-danger'
+      };
+      
+      const cardGradients = {
+        'excellent': 'linear-gradient(135deg, #11998e 0%, #38ef7d 100%)',
+        'good': 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        'needs_revision': 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+        'needs_major_revision': 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)'
+      };
+      
+      summaryStatus.className = 'alert mb-3 ' + statusClasses[data.summary.overall_status];
+      summaryStatus.innerHTML = '<strong>' + data.summary.status_message + '</strong>';
+      summaryCardContainer.style.background = cardGradients[data.summary.overall_status];
+      summaryCardContainer.style.color = 'white';
+      
+      // 更新摘要數據
+      document.getElementById('totalErrors').textContent = data.summary.total_errors;
+      document.getElementById('totalMissing').textContent = data.summary.total_missing;
+      document.getElementById('totalUncited').textContent = data.summary.total_uncited;
+      document.getElementById('totalReferencesSum').textContent = data.total_references;
+      document.getElementById('totalCitationsSum').textContent = data.total_citations;
+      
+      // 計算引用率
+      const citationRate = data.total_references > 0 
+        ? Math.round((data.total_references - data.summary.total_uncited) / data.total_references * 100)
+        : 0;
+      document.getElementById('citationRate').textContent = citationRate + '%';
+    }
+    
+    // 原有的統計數據
+    document.getElementById('totalCitations').textContent = data.total_citations || 0;
+    document.getElementById('totalReferences').textContent = data.total_references || 0;
+    document.getElementById('formatErrors').textContent = data.format_errors?.length || 0;
+    document.getElementById('missingReferences').textContent = data.missing_references?.length || 0;
+    document.getElementById('formatErrorsBadge').textContent = data.format_errors?.length || 0;
+    document.getElementById('missingRefsBadge').textContent = data.missing_references?.length || 0;
+    document.getElementById('citationStatusBadge').textContent = data.citation_status?.length || 0;
+    displayFormatErrors(data.format_errors || []);
+    displayMissingReferences(data.missing_references || []);
+    displayCitationStatus(data.citation_status || []);
+  }
+
+  function displayFormatErrors(errors) {
+    const tbody = document.querySelector('#formatErrorsTable tbody');
+    const noErrorsDiv = document.getElementById('noFormatErrors');
+    const table = document.getElementById('formatErrorsTable');
+    tbody.innerHTML = '';
+    if (errors.length === 0) {
+      hideElement(table);
+      showElement(noErrorsDiv);
+      return;
+    }
+    showElement(table);
+    hideElement(noErrorsDiv);
+    errors.forEach((error, index) => {
+      const row = tbody.insertRow();
+      const typeText = error.type === 'parenthetical' ? '括號內引用' : '敘述型引用';
+      const typeColor = error.type === 'parenthetical' ? 'bg-primary' : 'bg-info';
+      const section = error.section || 'Unknown';
+      
+      // 根據章節選擇顏色
+      const sectionColors = {
+        'Abstract': 'bg-secondary',
+        'Introduction': 'bg-success',
+        'Methods': 'bg-info',
+        'Results': 'bg-warning text-dark',
+        'Discussion': 'bg-primary',
+        'Conclusion': 'bg-dark',
+        'References': 'bg-danger',
+        'Document Start': 'bg-light text-dark'
+      };
+      const sectionColor = sectionColors[section] || 'bg-secondary';
+      
+      row.innerHTML = `
+        <td>
+          <span class="badge ${sectionColor}" style="font-size: 0.85em;">
+            <i class="fas fa-book-open me-1"></i>${section}
+          </span>
+        </td>
+        <td>
+          <code class="bg-light px-2 py-1 rounded">${escapeHtml(error.citation)}</code>
+        </td>
+        <td>
+          <span class="badge ${typeColor}">
+            <i class="fas ${error.type === 'parenthetical' ? 'fa-parentheses' : 'fa-comment'} me-1"></i>
+            ${typeText}
+          </span>
+        </td>
+        <td>
+          <div class="text-warning">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            ${escapeHtml(error.error)}
+          </div>
+        </td>
+      `;
+    });
+  }
+  
+  function displayMissingReferences(missing) {
+    const tbody = document.querySelector('#missingRefsTable tbody');
+    const noMissingDiv = document.getElementById('noMissingRefs');
+    const table = document.getElementById('missingRefsTable');
+    tbody.innerHTML = '';
+    if (missing.length === 0) {
+      hideElement(table);
+      showElement(noMissingDiv);
+      return;
+    }
+    showElement(table);
+    hideElement(noMissingDiv);
+    missing.forEach((item, index) => {
+      const row = tbody.insertRow();
+      const section = item.section || 'Unknown';
+      
+      // 根據章節選擇顏色
+      const sectionColors = {
+        'Abstract': 'bg-secondary',
+        'Introduction': 'bg-success',
+        'Methods': 'bg-info',
+        'Results': 'bg-warning text-dark',
+        'Discussion': 'bg-primary',
+        'Conclusion': 'bg-dark',
+        'References': 'bg-danger',
+        'Document Start': 'bg-light text-dark'
+      };
+      const sectionColor = sectionColors[section] || 'bg-secondary';
+      
+      row.innerHTML = `
+        <td>
+          <span class="badge ${sectionColor}" style="font-size: 0.85em;">
+            <i class="fas fa-book-open me-1"></i>${section}
+          </span>
+        </td>
+        <td>
+          <code class="bg-light px-2 py-1 rounded">${escapeHtml(item.citation)}</code>
+        </td>
+        <td>
+          <div class="text-danger">
+            <i class="fas fa-exclamation-circle me-2"></i>
+            在參考文獻區找不到對應的條目
+          </div>
+          ${item.suggestion ? `
+          <div class="text-info mt-2">
+            <i class="fas fa-lightbulb me-2"></i>
+            <small><strong>建議修正：</strong> ${escapeHtml(item.suggestion)}</small>
+          </div>
+          ` : ''}
+        </td>
+      `;
+    });
+  }
+
+  function displayCitationStatus(statusList) {
+    const tbody = document.querySelector('#citationStatusTable tbody');
+    tbody.innerHTML = '';
+    statusList.forEach((item, index) => {
+      const row = tbody.insertRow();
+      const statusBadge = item.cited ? 
+        '<span class="badge bg-success"><i class="fas fa-check-circle me-1"></i>已引用</span>' : 
+        '<span class="badge bg-warning"><i class="fas fa-exclamation-triangle me-1"></i>未引用</span>';
+      
+      // 縮短參考文獻顯示
+      const refText = item.reference.length > 100 ? 
+        item.reference.substring(0, 100) + '...' : item.reference;
+      
+      row.innerHTML = `
+        <td>${statusBadge}</td>
+        <td>
+          <div class="small" title="${escapeHtml(item.reference)}">
+            ${escapeHtml(refText)}
+          </div>
+        </td>
+        <td>
+          <code class="small bg-light px-2 py-1 rounded d-block">${escapeHtml(item.narrative)}</code>
+        </td>
+        <td>
+          <code class="small bg-light px-2 py-1 rounded d-block">${escapeHtml(item.parenthetical)}</code>
+        </td>
+      `;
+      
+      // 為未引用的行添加警告樣式
+      if (!item.cited) {
+        row.classList.add('table-warning');
+      }
+    });
+  }  function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+  }
+
+  function showElement(element) {
+    if (element) {
+      element.classList.remove('d-none');
+    }
+  }
+
+  function hideElement(element) {
+    if (element) {
+      element.classList.add('d-none');
+    }
+  }
+
+  function showError(errorDiv, message) {
+    if (errorDiv) {
+      errorDiv.textContent = message;
+      errorDiv.classList.remove('d-none');
+    }
+  }
+  </script>
+  
+  <!-- Bootstrap JavaScript -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

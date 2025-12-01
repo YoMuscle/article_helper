@@ -7,6 +7,7 @@ from services.crossref_service import (
 )
 from services.apa_formatter import format_apa_reference, generate_citation_key
 from services.reference_parser import parse_reference
+from models import VisitorCount
 import re
 
 bp = Blueprint('citation', __name__)
@@ -218,6 +219,9 @@ def generate_citation():
             apa_ref = format_apa_reference(meta) if meta else ""
             citation = generate_citation_key(meta) if meta else {"parenthetical": "", "narrative": ""}
 
+            # 成功產生 Citation，增加使用次數
+            VisitorCount.increment()
+
             return jsonify({
                 "mode": mode,
                 "status": "success",
@@ -233,6 +237,9 @@ def generate_citation():
 
         apa_ref = format_apa_reference(meta)
         citation = generate_citation_key(meta)
+
+        # 成功產生 Citation，增加使用次數
+        VisitorCount.increment()
 
         return jsonify({
             "mode": mode,

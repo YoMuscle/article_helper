@@ -1,6 +1,64 @@
-.apa/
+# Python
 __pycache__/
-*.pyc
-services/__pycache__/*.pyc
-routes/__pycache__/*.pyc
-prompt/*.json
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Flask
+instance/
+.webassets-cache
+
+# 環境變數
+.env
+.env.local
+.env.*.local
+
+# 資料庫
+*.db
+*.sqlite
+*.sqlite3
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# 上傳的文件
+uploads/*
+!uploads/.gitkeep
+
+# 測試
+.coverage
+htmlcov/
+.pytest_cache/
+
+# Logs
+*.log
+
+# Prompts / Plans
+plans/
