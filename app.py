@@ -206,4 +206,8 @@ def reset_password_page(token):
     return render_template('reset_password.html', token=token)
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    # 從環境變數讀取配置，適用於雲端部署
+    host = os.getenv('HOST', '0.0.0.0')
+    port = int(os.getenv('PORT', 5000))
+    debug = os.getenv('FLASK_DEBUG', 'True').lower() == 'true'
+    app.run(host=host, port=port, debug=debug)

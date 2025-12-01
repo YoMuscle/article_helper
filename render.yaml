@@ -1,0 +1,29 @@
+# Render.com 部署配置
+services:
+  - type: web
+    name: apa-checker
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app
+    envVars:
+      - key: SECRET_KEY
+        generateValue: true
+      - key: APP_URL
+        sync: false  # 需要手動設定為你的 Render URL
+      - key: DATABASE_URL
+        sync: false  # 可選：連接外部資料庫
+      - key: DEV_MODE
+        value: "False"
+      - key: FLASK_DEBUG
+        value: "False"
+      - key: MAIL_SERVER
+        sync: false
+      - key: MAIL_PORT
+        value: "587"
+      - key: MAIL_USE_TLS
+        value: "True"
+      - key: MAIL_USERNAME
+        sync: false
+      - key: MAIL_PASSWORD
+        sync: false
+

@@ -1,4 +1,4 @@
-from flask import current_app, render_template
+from flask import current_app, render_template, request
 from flask_mail import Mail, Message
 import os
 
@@ -10,9 +10,29 @@ def init_mail(app):
     mail.init_app(app)
 
 
+def get_app_url():
+    """
+    取得應用程式 URL，優先順序：
+    1. APP_URL 環境變數
+    2. 從當前請求自動偵測
+    3. 預設 localhost
+    """
+    app_url = os.getenv('APP_URL')
+    if app_url:
+        return app_url.rstrip('/')
+    
+    # 嘗試從請求中獲取
+    try:
+        # request.host_url 包含 scheme 和 host，例如 "https://example.com/"
+        return request.host_url.rstrip('/')
+    except RuntimeError:
+        # 不在 request context 中
+        return 'http://localhost:5000'
+
+
 def send_verification_email(user_email, username, verification_token):
     """發送 Email 驗證郵件"""
-    app_url = os.getenv('APP_URL', 'http://localhost:5000')
+    app_url = get_app_url()
     verification_url = f"{app_url}/verify-email/{verification_token}"
     
     subject = "論文救火站 - 請驗證您的 Email"
@@ -73,7 +93,7 @@ def send_verification_email(user_email, username, verification_token):
 
 def send_password_reset_email(user_email, username, reset_token):
     """發送密碼重設郵件"""
-    app_url = os.getenv('APP_URL', 'http://localhost:5000')
+    app_url = get_app_url()
     reset_url = f"{app_url}/reset-password/{reset_token}"
     
     subject = "論文救火站 - 重設密碼"
@@ -134,6 +154,7 @@ def send_password_reset_email(user_email, username, reset_token):
 
 def send_welcome_email(user_email, username):
     """發送歡迎郵件（給 Google OAuth 使用者）"""
+    app_url = get_app_url()
     subject = "歡迎來到論文救火站！"
     
     # HTML 版本
@@ -151,7 +172,7 @@ def send_welcome_email(user_email, username):
                 <li>產生標準的 APA Citation</li>
             </ul>
             <div style="text-align: center; margin: 30px 0;">
-                <a href="{os.getenv('APP_URL', 'http://localhost:5000')}" 
+                <a href="{app_url}" 
                    style="background-color: #007BFF; color: white; padding: 12px 30px; 
                           text-decoration: none; border-radius: 5px; display: inline-block;">
                     開始使用

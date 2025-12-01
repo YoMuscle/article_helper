@@ -67,6 +67,7 @@ def register():
         # 建立新使用者
         user = User(email=email, username=username)
         user.set_password(password)
+        print(f"[REGISTER] Created user: {email}, password_hash set: {user.password_hash is not None}")
         
         # 開發模式：自動驗證使用者
         dev_mode = os.getenv('DEV_MODE', 'False').lower() == 'true'
@@ -122,7 +123,15 @@ def login():
         # 查找使用者
         user = User.query.filter_by(email=email).first()
         
-        if not user or not user.check_password(password):
+        if not user:
+            print(f"[LOGIN] User not found: {email}")
+            return jsonify({"error": "Email 或密碼錯誤"}), 401
+        
+        # 檢查密碼
+        password_valid = user.check_password(password)
+        print(f"[LOGIN] User: {email}, has_password: {user.password_hash is not None}, password_valid: {password_valid}")
+        
+        if not password_valid:
             return jsonify({"error": "Email 或密碼錯誤"}), 401
         
         # 登入使用者
@@ -134,6 +143,7 @@ def login():
         }), 200
         
     except Exception as e:
+        print(f"[LOGIN ERROR] {str(e)}")
         return jsonify({"error": f"登入失敗: {str(e)}"}), 500
 
 
