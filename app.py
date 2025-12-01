@@ -237,6 +237,23 @@ def forgot_password_page():
 def reset_password_page(token):
     return render_template('reset_password.html', token=token)
 
+@app.route('/admin')
+def admin_page():
+    """管理員頁面 - 只有 ADMIN_EMAILS 中的用戶可以存取"""
+    # 檢查是否登入
+    if not current_user.is_authenticated:
+        return redirect('/login')
+    
+    # 檢查是否為管理員
+    admin_emails = os.getenv('ADMIN_EMAILS', '').lower().split(',')
+    admin_emails = [e.strip() for e in admin_emails if e.strip()]
+    
+    if current_user.email.lower() not in admin_emails:
+        # 不是管理員，重定向到首頁
+        return redirect('/')
+    
+    return render_template('admin.html')
+
 if __name__ == '__main__':
     # 從環境變數讀取配置，適用於雲端部署
     host = os.getenv('HOST', '0.0.0.0')
