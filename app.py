@@ -23,8 +23,21 @@ CORS(app, supports_credentials=True)
 
 # 配置
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'dev-secret-key-change-in-production')
-app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'sqlite:///apa_checker.db')
+
+# 資料庫配置（支援多種環境變數名稱）
+database_url = (
+    os.getenv('DATABASE_URL') or 
+    os.getenv('POSTGRES_URI') or 
+    os.getenv('POSTGRESQL_URI') or 
+    'sqlite:///apa_checker.db'
+)
+# Heroku/某些平台使用 postgres:// 但 SQLAlchemy 需要 postgresql://
+if database_url.startswith('postgres://'):
+    database_url = database_url.replace('postgres://', 'postgresql://', 1)
+app.config['SQLALCHEMY_DATABASE_URI'] = database_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+print(f"[INIT] Database: {database_url[:50]}...")
 
 # Email 配置
 app.config['MAIL_SERVER'] = os.getenv('MAIL_SERVER', 'smtp.gmail.com')
