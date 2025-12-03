@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify
 from flask_login import current_user
-from utils.decorators import login_required, verified_required
+from utils.decorators import login_required, verified_required, premium_required
 from services.goal_service import GoalService
 from services.task_service import TaskService
 from services.statistics_service import StatisticsService
@@ -12,7 +12,7 @@ bp = Blueprint('goals', __name__, url_prefix='/api')
 # ==================== 目標管理 API ====================
 
 @bp.route('/goals', methods=['GET'])
-@verified_required
+@premium_required
 def get_goals():
     """獲取使用者所有目標"""
     try:
@@ -30,7 +30,7 @@ def get_goals():
 
 
 @bp.route('/goals', methods=['POST'])
-@verified_required
+@premium_required
 def create_goal():
     """新增目標"""
     try:
@@ -54,7 +54,7 @@ def create_goal():
 
 
 @bp.route('/goals/<int:goal_id>', methods=['GET'])
-@verified_required
+@premium_required
 def get_goal(goal_id):
     """獲取特定目標詳情"""
     try:
@@ -78,7 +78,7 @@ def get_goal(goal_id):
 
 
 @bp.route('/goals/<int:goal_id>', methods=['PUT'])
-@verified_required
+@premium_required
 def update_goal(goal_id):
     """更新目標"""
     try:
@@ -97,7 +97,7 @@ def update_goal(goal_id):
 
 
 @bp.route('/goals/<int:goal_id>', methods=['DELETE'])
-@verified_required
+@premium_required
 def delete_goal(goal_id):
     """刪除目標"""
     try:
@@ -112,7 +112,7 @@ def delete_goal(goal_id):
 
 
 @bp.route('/goals/<int:goal_id>/status', methods=['PUT'])
-@verified_required
+@premium_required
 def update_goal_status(goal_id):
     """更新目標狀態"""
     try:
@@ -138,7 +138,7 @@ def update_goal_status(goal_id):
 # ==================== 任務管理 API ====================
 
 @bp.route('/goals/<int:goal_id>/tasks', methods=['GET'])
-@verified_required
+@premium_required
 def get_goal_tasks(goal_id):
     """獲取目標下的所有任務"""
     try:
@@ -161,7 +161,7 @@ def get_goal_tasks(goal_id):
 
 
 @bp.route('/goals/<int:goal_id>/tasks', methods=['POST'])
-@verified_required
+@premium_required
 def create_task(goal_id):
     """在目標下新增任務"""
     try:
@@ -185,7 +185,7 @@ def create_task(goal_id):
 
 
 @bp.route('/tasks/<int:task_id>', methods=['GET'])
-@verified_required
+@premium_required
 def get_task(task_id):
     """獲取任務詳情"""
     try:
@@ -203,7 +203,7 @@ def get_task(task_id):
 
 
 @bp.route('/tasks/<int:task_id>', methods=['PUT'])
-@verified_required
+@premium_required
 def update_task(task_id):
     """更新任務"""
     try:
@@ -222,7 +222,7 @@ def update_task(task_id):
 
 
 @bp.route('/tasks/<int:task_id>', methods=['DELETE'])
-@verified_required
+@premium_required
 def delete_task(task_id):
     """刪除任務"""
     try:
@@ -237,7 +237,7 @@ def delete_task(task_id):
 
 
 @bp.route('/tasks/<int:task_id>/complete', methods=['PUT'])
-@verified_required
+@premium_required
 def toggle_task_completion(task_id):
     """切換任務完成狀態"""
     try:
@@ -255,7 +255,7 @@ def toggle_task_completion(task_id):
 
 
 @bp.route('/goals/<int:goal_id>/tasks/reorder', methods=['PUT'])
-@verified_required
+@premium_required
 def reorder_tasks(goal_id):
     """調整任務順序"""
     try:
@@ -275,7 +275,7 @@ def reorder_tasks(goal_id):
 # ==================== 子任務管理 API ====================
 
 @bp.route('/tasks/<int:task_id>/subtasks', methods=['GET'])
-@verified_required
+@premium_required
 def get_subtasks(task_id):
     """獲取子任務列表"""
     try:
@@ -296,7 +296,7 @@ def get_subtasks(task_id):
 
 
 @bp.route('/tasks/<int:task_id>/subtasks', methods=['POST'])
-@verified_required
+@premium_required
 def create_subtask(task_id):
     """新增子任務"""
     try:
@@ -322,7 +322,7 @@ def create_subtask(task_id):
 # ==================== 標籤管理 API ====================
 
 @bp.route('/tags', methods=['GET'])
-@verified_required
+@premium_required
 def get_tags():
     """獲取使用者所有標籤"""
     try:
@@ -335,7 +335,7 @@ def get_tags():
 
 
 @bp.route('/tags', methods=['POST'])
-@verified_required
+@premium_required
 def create_tag():
     """新增標籤"""
     try:
@@ -371,7 +371,7 @@ def create_tag():
 
 
 @bp.route('/tags/<int:tag_id>', methods=['PUT'])
-@verified_required
+@premium_required
 def update_tag(tag_id):
     """更新標籤"""
     try:
@@ -397,7 +397,7 @@ def update_tag(tag_id):
 
 
 @bp.route('/tags/<int:tag_id>', methods=['DELETE'])
-@verified_required
+@premium_required
 def delete_tag(tag_id):
     """刪除標籤"""
     try:
@@ -417,7 +417,7 @@ def delete_tag(tag_id):
 # ==================== 統計與儀表板 API ====================
 
 @bp.route('/goals/dashboard', methods=['GET'])
-@verified_required
+@premium_required
 def get_dashboard():
     """獲取儀表板統計數據"""
     try:
@@ -432,7 +432,7 @@ def get_dashboard():
 
 
 @bp.route('/goals/statistics', methods=['GET'])
-@verified_required
+@premium_required
 def get_statistics():
     """獲取歷史統計（用於趨勢圖）"""
     try:
@@ -447,7 +447,7 @@ def get_statistics():
 
 
 @bp.route('/tasks/upcoming', methods=['GET'])
-@verified_required
+@premium_required
 def get_upcoming_tasks():
     """獲取即將到期的任務"""
     try:
@@ -465,7 +465,7 @@ def get_upcoming_tasks():
 
 
 @bp.route('/tasks/overdue', methods=['GET'])
-@verified_required
+@premium_required
 def get_overdue_tasks():
     """獲取逾期任務"""
     try:

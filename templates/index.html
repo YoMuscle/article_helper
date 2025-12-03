@@ -961,6 +961,10 @@
               <li><a class="dropdown-item" href="/my-documents">
                 <i class="fas fa-folder me-2"></i>我的文件
               </a></li>
+              <li id="navGoalsLink" style="display: none;"><a class="dropdown-item" href="/my-goals">
+                <i class="fas fa-bullseye me-2"></i>我的目標
+                <span class="badge bg-primary ms-2" style="font-size: 0.65rem;">Premium</span>
+              </a></li>
               <li><a class="dropdown-item" href="/profile">
                 <i class="fas fa-user-edit me-2"></i>個人資料
               </a></li>
@@ -1316,16 +1320,25 @@
       const navRegister = document.getElementById('navRegister');
       const navUser = document.getElementById('navUser');
       const navUsername = document.getElementById('navUsername');
+      const navGoalsLink = document.getElementById('navGoalsLink');
 
       if (isLoggedIn && user) {
         navLogin.style.display = 'none';
         navRegister.style.display = 'none';
         navUser.style.display = 'block';
         navUsername.textContent = user.username;
+
+        // 顯示/隱藏目標管理連結（僅 Premium 會員）
+        if (navGoalsLink) {
+          navGoalsLink.style.display = user.is_premium ? 'block' : 'none';
+        }
       } else {
         navLogin.style.display = 'block';
         navRegister.style.display = 'block';
         navUser.style.display = 'none';
+        if (navGoalsLink) {
+          navGoalsLink.style.display = 'none';
+        }
       }
     }
 

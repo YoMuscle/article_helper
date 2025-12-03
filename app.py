@@ -15,7 +15,7 @@ from models import db, User, Document, VisitorCount
 from services.document_analyzer import DocumentAnalyzer
 from services.email_service import init_mail
 from routes.auth import init_oauth
-from utils.decorators import login_required, verified_required
+from utils.decorators import login_required, verified_required, premium_required_page
 
 # 初始化 Flask 應用
 app = Flask(__name__)
@@ -257,18 +257,21 @@ def admin_page():
     return render_template('admin.html')
 
 @app.route('/my-goals')
+@premium_required_page
 def my_goals_page():
-    """我的目標列表頁面"""
+    """我的目標列表頁面（Premium 會員專屬）"""
     return render_template('my_goals.html')
 
 @app.route('/my-goals/<int:goal_id>')
+@premium_required_page
 def goal_detail_page(goal_id):
-    """目標詳情頁面"""
+    """目標詳情頁面（Premium 會員專屬）"""
     return render_template('goal_detail.html', goal_id=goal_id)
 
 @app.route('/my-goals/dashboard')
+@premium_required_page
 def goals_dashboard_page():
-    """統計儀表板頁面"""
+    """統計儀表板頁面（Premium 會員專屬）"""
     return render_template('goals_dashboard.html')
 
 if __name__ == '__main__':
