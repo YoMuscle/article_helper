@@ -23,6 +23,9 @@ class User(UserMixin, db.Model):
     documents = db.relationship('Document', backref='user', lazy=True, cascade='all, delete-orphan')
     email_verifications = db.relationship('EmailVerification', backref='user', lazy=True, cascade='all, delete-orphan')
     password_resets = db.relationship('PasswordReset', backref='user', lazy=True, cascade='all, delete-orphan')
+    goals = db.relationship('Goal', backref='user', lazy=True, cascade='all, delete-orphan')
+    task_tags = db.relationship('TaskTag', backref='user', lazy=True, cascade='all, delete-orphan')
+    goal_statistics = db.relationship('GoalStatistics', backref='user', lazy=True, cascade='all, delete-orphan')
     
     def set_password(self, password):
         """設定密碼（使用 bcrypt 加密）"""

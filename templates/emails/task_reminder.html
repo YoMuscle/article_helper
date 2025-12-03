@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>任務提醒</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            background-color: #4CAF50;
+            color: white;
+            padding: 20px;
+            text-align: center;
+            border-radius: 5px 5px 0 0;
+        }
+        .content {
+            background-color: #f9f9f9;
+            padding: 30px;
+            border: 1px solid #ddd;
+            border-top: none;
+        }
+        .task-info {
+            background-color: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-left: 4px solid #4CAF50;
+            border-radius: 4px;
+        }
+        .task-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #2c3e50;
+        }
+        .task-detail {
+            margin: 8px 0;
+            color: #555;
+        }
+        .task-detail strong {
+            color: #333;
+        }
+        .urgency-badge {
+            display: inline-block;
+            padding: 5px 12px;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+        .urgency-today {
+            background-color: #f44336;
+            color: white;
+        }
+        .urgency-soon {
+            background-color: #ff9800;
+            color: white;
+        }
+        .urgency-upcoming {
+            background-color: #2196F3;
+            color: white;
+        }
+        .cta-button {
+            display: inline-block;
+            padding: 12px 30px;
+            background-color: #4CAF50;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            margin: 20px 0;
+            font-weight: bold;
+        }
+        .cta-button:hover {
+            background-color: #45a049;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            padding: 20px;
+            color: #777;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>📋 任務到期提醒</h1>
+    </div>
+    <div class="content">
+        <p>Hi {{ user.username }}，</p>
+        <p>您有一個任務即將到期，請注意！</p>
+
+        <div class="task-info">
+            <div class="task-title">{{ task.title }}</div>
+
+            {% if days_until_due == 0 %}
+            <span class="urgency-badge urgency-today">⏰ 今天到期</span>
+            {% elif days_until_due == 1 %}
+            <span class="urgency-badge urgency-soon">⏰ 明天到期</span>
+            {% else %}
+            <span class="urgency-badge urgency-upcoming">📅 {{ urgency }}到期</span>
+            {% endif %}
+
+            <div class="task-detail">
+                <strong>所屬目標：</strong> {{ goal.title }}
+            </div>
+
+            {% if task.description %}
+            <div class="task-detail">
+                <strong>描述：</strong> {{ task.description }}
+            </div>
+            {% endif %}
+
+            <div class="task-detail">
+                <strong>到期日期：</strong> {{ task.due_date.strftime('%Y年%m月%d日') }}
+            </div>
+
+            {% if task.priority %}
+            <div class="task-detail">
+                <strong>優先級：</strong>
+                {% if task.priority == 'high' %}
+                <span style="color: #f44336;">🔴 高</span>
+                {% elif task.priority == 'medium' %}
+                <span style="color: #ff9800;">🟡 中</span>
+                {% else %}
+                <span style="color: #4CAF50;">🟢 低</span>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+
+        <p style="text-align: center;">
+            <a href="{{ goal_url }}" class="cta-button">查看任務詳情</a>
+        </p>
+
+        <p style="color: #777; font-size: 14px;">
+            💡 小提示：完成任務後記得標記為已完成哦！
+        </p>
+    </div>
+
+    <div class="footer">
+        <p>此郵件由論文救火站自動發送</p>
+        <p>如果您不想接收任務提醒，請在個人設定中關閉此功能</p>
+    </div>
+</body>
+</html>

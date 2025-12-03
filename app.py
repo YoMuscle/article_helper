@@ -1,5 +1,5 @@
 
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, redirect
 from flask_cors import CORS
 from flask_login import LoginManager, current_user
 import os
@@ -86,9 +86,11 @@ with app.app_context():
 from routes.citation import bp as citation_bp
 from routes.auth import bp as auth_bp
 from routes.admin import bp as admin_bp
+from routes.goals import bp as goals_bp
 app.register_blueprint(citation_bp)
 app.register_blueprint(auth_bp)
 app.register_blueprint(admin_bp)
+app.register_blueprint(goals_bp)
 
 # 文件上傳設定
 UPLOAD_FOLDER = 'uploads'
@@ -243,18 +245,68 @@ def admin_page():
     # 檢查是否登入
     if not current_user.is_authenticated:
         return redirect('/login')
-    
+
     # 檢查是否為管理員
     admin_emails = os.getenv('ADMIN_EMAILS', '').lower().split(',')
     admin_emails = [e.strip() for e in admin_emails if e.strip()]
-    
+
     if current_user.email.lower() not in admin_emails:
         # 不是管理員，重定向到首頁
         return redirect('/')
-    
+
     return render_template('admin.html')
 
+@app.route('/my-goals')
+def my_goals_page():
+    """我的目標列表頁面"""
+    return render_template('my_goals.html')
+
+@app.route('/my-goals/<int:goal_id>')
+def goal_detail_page(goal_id):
+    """目標詳情頁面"""
+    return render_template('goal_detail.html', goal_id=goal_id)
+
+@app.route('/my-goals/dashboard')
+def goals_dashboard_page():
+    """統計儀表板頁面"""
+    return render_template('goals_dashboard.html')
+
 if __name__ == '__main__':
+    # 初始化 APScheduler（如果需要）
+    scheduler_enabled = os.getenv('SCHEDULER_ENABLED', 'True').lower() == 'true'
+    if scheduler_enabled:
+        try:
+            from apscheduler.schedulers.background import BackgroundScheduler
+            from services.task_reminder_service import TaskReminderService
+            from services.statistics_service import StatisticsService
+
+            scheduler = BackgroundScheduler()
+
+            # 每日早上 8:00 發送提醒
+            scheduler.add_job(
+                TaskReminderService.send_due_reminders,
+                'cron',
+                hour=8,
+                minute=0,
+                id='send_task_reminders'
+            )
+
+            # 每日午夜產生統計快照
+            scheduler.add_job(
+                StatisticsService.generate_daily_snapshot_for_all,
+                'cron',
+                hour=0,
+                minute=0,
+                id='generate_daily_stats'
+            )
+
+            scheduler.start()
+            print("[SCHEDULER] Task scheduler started")
+        except ImportError:
+            print("[SCHEDULER] APScheduler not installed, scheduler disabled")
+        except Exception as e:
+            print(f"[SCHEDULER ERROR] Failed to start scheduler: {e}")
+
     # 從環境變數讀取配置，適用於雲端部署
     host = os.getenv('HOST', '0.0.0.0')
     port = int(os.getenv('PORT', 5000))
